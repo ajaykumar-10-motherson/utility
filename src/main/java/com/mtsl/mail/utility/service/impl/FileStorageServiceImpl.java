@@ -24,9 +24,9 @@ import org.springframework.stereotype.Service;
 
 import com.mtsl.mail.utility.dto.FileDetailsDTO;
 import com.mtsl.mail.utility.dto.MailDTO;
-import com.mtsl.mail.utility.service.AttachementExtractor;
 import com.mtsl.mail.utility.service.AuditService;
 import com.mtsl.mail.utility.service.FileStorageService;
+import com.mtsl.mail.utility.service.MarkMailAsUnread;
 
 import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +45,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 	public static final String FILE_SEPERATOR = "\\";
 	
 	private final AuditService auditService;
-	private final AttachementExtractor attachementExtractor;
+	private final MarkMailAsUnread markMailAsUnread;  
 
 	@Override
 	public boolean downLoadAttachment(MailDTO fileAttachementDTO) throws IOException, MessagingException {
@@ -123,7 +123,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 			is_Success = uploadFile(fileAttachementDTO,uploadFileData, totalFile, totalvalidFile, uploadedFileList);
 
 		} catch (Exception ex) {
-			attachementExtractor.markMailAsUnread(fileAttachementDTO.getEmailFolder(), fileAttachementDTO.getMessage());
+			markMailAsUnread.markMailAsUnread(fileAttachementDTO.getEmailFolder(), fileAttachementDTO.getMessage());
 			is_Success = false;
 		} finally {
 			if (is != null)
@@ -168,8 +168,8 @@ public class FileStorageServiceImpl implements FileStorageService{
 				Long fileSize = 0l;
 
 				String fileNameWithOutExt = FilenameUtils.removeExtension(dto.getFileName());
-				String docType = defDocType;
-				String docId = defDocType;
+				String docType = "4";
+				String docId = "4";
 				String userId = "1";
 				String userName = "";
 				String companyIdWithPrefix;
@@ -274,7 +274,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 
 		} catch (Exception exception) {
 			is_Success = false;
-			attachementExtractor.markMailAsUnread(emailFolder, message);
+			markMailAsUnread.markMailAsUnread(emailFolder, message);
 
 		} finally {
 			auditService.updateMailLogDetail(generatedEmailId, uploadedAttachmentName, fileUploadCount, totalFile);
@@ -288,7 +288,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 		try {
 			FileUtils.copyFile(tempFileWithLocation, new File(phyficalPathForNewFile + FILE_SEPERATOR + renamedFile));
 		} catch (IOException ioe) {
-			attachementExtractor.markMailAsUnread(emailFolder, message);
+			markMailAsUnread.markMailAsUnread(emailFolder, message);
 		}
 	}
 	
@@ -311,7 +311,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 			// FOR OCR
 			FileUtils.copyFile(tempFileWithLocation, new File(ocrUnStructuredSourcePath + renamedFile));
 		} catch (IOException ioe) {
-			attachementExtractor.markMailAsUnread(emailFolder, message);
+			markMailAsUnread.markMailAsUnread(emailFolder, message);
 		}
 	}
 

@@ -23,4 +23,5 @@ public class MailDTO {
 	String bpoCentralizedRepositoryArchive;
 	String ftpUploadLocation;
 	String defDocType;
+	String imap;
 }

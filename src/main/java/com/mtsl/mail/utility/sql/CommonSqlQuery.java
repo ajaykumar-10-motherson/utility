@@ -2,10 +2,24 @@ package com.mtsl.mail.utility.sql;
 
 import java.util.Map;
 
+/**
+ * @author ajay.kumar10
+ *
+ */
 public class CommonSqlQuery {
 
 	private CommonSqlQuery() {
 	}
+	
+	
+	/**
+	 * Get generic informations form database.
+	 */
+	public static final String GENERIC_EMAIL_ID_TO_DOWNLOAD_ATTACHMENT = "SELECT BUSINESS_UNIT_ID, GENERIC_EMAIL_ID, USER_ID, PASSWORD, "
+			+ " BU.COMPANYID, UNIT_NAME, UNIT_CODE, COMPANY_NAME,IMAP_IP,Default_Doc_Type  "
+			+ " FROM ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK)"
+			+ " JOIN ECRM_CA_VIEW_COMPANY_PROFILE CP WITH(NOLOCK) ON BU.COMPANYID = CP.COMPANYID"
+			+ " WHERE GENERIC_EMAIL_ID =?";
 
 	/**
 	 * Get mail upload log Id.
@@ -50,12 +64,12 @@ public class CommonSqlQuery {
 			+ " ELSE CAST(day(getdate()) AS Char(2)) End + "
 			+ " '_' + Replicate('0' , 5 - len(@Counter)) + CAST(@Counter AS Varchar(5)) " + " SELECT @New_File_Name ";
 
-	public static String INSERT_INTO_INVOICE_QUEUE = "INSERT INTO ECRM_CA_INVOICE_QUEUE (FILE_NAME, ORIGINAL_FILE_NAME, "
+	public static final String INSERT_INTO_INVOICE_QUEUE = "INSERT INTO ECRM_CA_INVOICE_QUEUE (FILE_NAME, ORIGINAL_FILE_NAME, "
 			+ " COMPANY_NAME, BUSINESS_UNIT_NAME, BUSINESS_UNIT_ID, STAGING_DATE, INVOICE_ASSIGNEMENT_QUEUE_STATUS, "
 			+ " FILE_SIZE, FILE_IDENTIFIER, DOC_TYPE, CONFIDENCE_LEVEL, IS_OCR_ENABLED, UPLOADED_BY_USER_ID, WF_STATUS, EMAIL_LOG_ID) "
 			+ " VALUES(?, ?, ?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-	public static final String GET_FTP_LOCATION = "SELECT FS.FTP_UPLOAD_LOCATION FROM ECRM_CA_FILES_SOURCE FS WITH(NOLOCK)  JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK)  ON BU.BUSINESS_UNIT_ID=FS.BUSINESS_UNIT_ID WHERE BU.UNIT_CODE=?";
+	public static final String GET_FTP_LOCATION = "SELECT TOP 1  FS.FTP_UPLOAD_LOCATION FROM ECRM_CA_FILES_SOURCE FS WITH(NOLOCK)  JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK)  ON BU.BUSINESS_UNIT_ID=FS.BUSINESS_UNIT_ID WHERE BU.UNIT_CODE=?";
 
 	/**
 	 * Update mail log details

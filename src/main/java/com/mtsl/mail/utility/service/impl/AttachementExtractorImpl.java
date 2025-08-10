@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 import javax.mail.BodyPart;
 import javax.mail.Flags;
-import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
@@ -34,6 +33,7 @@ import com.mtsl.mail.utility.service.AttachementExtractor;
 import com.mtsl.mail.utility.service.AuditService;
 import com.mtsl.mail.utility.service.FileStorageService;
 import com.mtsl.mail.utility.service.MailSenderService;
+import com.mtsl.mail.utility.service.MarkMailAsUnread;
 
 import lombok.RequiredArgsConstructor;
 
@@ -48,6 +48,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 	private final AuditService auditService;
 	private final FileStorageService fileStorageService;
 	private final MailSenderService mailSenderService;
+	private final MarkMailAsUnread markMailAsUnread;  
 
 	String emailReceivedFrom = "";
 	EmailLogDTO emailLogDTO = null;
@@ -130,6 +131,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 						((Multipart) content).writeTo(baos);
 						byte[] bytes = baos.toByteArray();
 						emailLogDTO.setEmailData(bytes);
+						mailDTO.setObjRef(objRef);
 					}
 
 					auditService.updateMailBodyNData(generatedEmailId, emailLogDTO);
@@ -137,14 +139,16 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 					
 					try {
 						auditService.insertIntoEmailLogDetails(uploadedFileList, generatedEmailId);
+						mailDTO.setMessage(message);
+						mailDTO.setGeneratedEmailId(generatedEmailId);
 
 						boolean isSuccess = fileStorageService.downLoadAttachment(mailDTO);
 
 						if (isSuccess) {
 							SendMailDTO sendMailDTO = new SendMailDTO();
-							sendMailDTO.setCommonEmailId("");
-							sendMailDTO.setMailTo("");
-							sendMailDTO.setCompanyBu("");
+							sendMailDTO.setCommonEmailId("ajay.kumar10@Motherson.com");
+							sendMailDTO.setMailTo("ajay.kumar10@Motherson.com");
+							sendMailDTO.setCompanyBu("1");
 							sendMailDTO.setEmaliLogId(generatedEmailId);
 
 							/*
@@ -157,7 +161,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 					}
 
 					catch (SQLException e) {
-						markMailAsUnread(mailDTO.getEmailFolder(), message);
+						markMailAsUnread.markMailAsUnread(mailDTO.getEmailFolder(), message);
 						e.printStackTrace();
 					}
 
@@ -216,22 +220,5 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 		return null;
 	}
 
-	/**
-	 * method will set the flag as SEEN if any exception is occurred for 3 times.
-	 * 
-	 * @param emailFolder
-	 * @param message
-	 */
-	@Override
-	public void markMailAsUnread(Folder emailFolder, Message message) {
-		try {
-			int failCount = auditService.updateMailUploadLogFailCount(message);
-			if (failCount < 3) { // make this count also configurable...
-				emailFolder.setFlags(new Message[] { message }, new Flags(Flags.Flag.SEEN), false);
-			}
-			logger.warn("fail count is ::{} of message::{} ", failCount, message);
-		} catch (MessagingException e1) {
-			logger.error(e1.toString());
-		}
-	}
+	
 }

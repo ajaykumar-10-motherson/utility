@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import com.mtsl.mail.utility.config.MailConfiguration;
 import com.mtsl.mail.utility.dao.CommonDao;
-import com.mtsl.mail.utility.dto.EmailLogDTO;
 import com.mtsl.mail.utility.dto.MailDTO;
 import com.mtsl.mail.utility.dto.SystemConfigurationVO;
 import com.mtsl.mail.utility.security.MordenAuthentication;
@@ -73,7 +72,7 @@ public class MailReaderServiceImpl implements MailReaderService {
 					mailConfiguration.getClientId(), mailConfiguration.getClientSecret());
 
 			session = Session.getInstance(properties);
-			session.setDebug(true);
+			session.setDebug(false);
 			emailStore = session.getStore("imap");
 
 			emailStore.connect(mailConfiguration.getHost(), mailConfiguration.getEmail(), token);
@@ -81,13 +80,19 @@ public class MailReaderServiceImpl implements MailReaderService {
 			emailFolder = emailStore.getFolder(mailConfiguration.getFolder());
 			emailFolder.open(Folder.READ_WRITE);
 
-			MailDTO mailDTO = new MailDTO();
+			MailDTO mailDTO =null;
+			mailDTO =commonDao.getGenericDatafromDB(mailConfiguration.getEmail());
+
+			if(mailDTO==null) {
+				logger.error("Data base values are not configured for User {}",mailConfiguration.getEmail());
+			}else {
 			mailDTO.setEmailFolder(emailFolder);
-			mailDTO.setBpoCentralizedRepositoryArchive(bpoCetralizedRepoPath);
+			mailDTO.setBpoEmailTempLocationAtHTTPServer(emailTempFolderLocation);
+			mailDTO.setBpoCentralizedRepositoryArchive(bpoCetralizedRepoPath);			
+			mailDTO.setOcrUnStructuredSourcePath(ocrSourcePath);
 			
-						
 			attachementExtractor.extractAttachments(mailDTO);
-			
+			}
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 			e.printStackTrace();
@@ -95,6 +100,7 @@ public class MailReaderServiceImpl implements MailReaderService {
 
 		return 0;
 	}
+
 
 	private void systemConfigurationSetUpFromDatabase() {
 
@@ -136,7 +142,7 @@ public class MailReaderServiceImpl implements MailReaderService {
 		properties.put("mail.imap.auth.mechanisms", "XOAUTH2");
 		properties.put("mail.imap.auth", "true");
 		properties.put("mail.imap.user", mailAddress);
-		properties.put("mail.debug", "true");
+		properties.put("mail.debug", "false");
 	}
 
 }

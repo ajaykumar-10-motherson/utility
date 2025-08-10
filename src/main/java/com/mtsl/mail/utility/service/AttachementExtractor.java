@@ -11,5 +11,5 @@ import com.mtsl.mail.utility.dto.MailDTO;
 public interface AttachementExtractor{
 	
 	public boolean extractAttachments(MailDTO mailDTO) throws IOException, MessagingException;
-	public  void markMailAsUnread(Folder emailFolder, Message message);
+	
 }
