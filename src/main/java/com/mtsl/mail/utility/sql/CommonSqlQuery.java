@@ -1,0 +1,1169 @@
+package com.mtsl.mail.utility.sql;
+
+import java.util.Map;
+
+public class CommonSqlQuery {
+
+	private CommonSqlQuery() {
+	}
+
+	/**
+	 * Get mail upload log Id.
+	 */
+	public static final String GET_MAIL_UPLOAD_LOG_ID = "SELECT TOP 1 ID FROM ECRM_CA_GENERIC_EMAIL_UPLOAD_LOG "
+			+ " WHERE EMAIL_NUMBER = ? ORDER By ID desc";
+
+	/**
+	 * Insert In ECRM_CA_EMAIL_LOG
+	 */
+	public static final String INSERT_INTO_ECRM_CA_EMAIL_LOG = "INSERT INTO ECRM_CA_GENERIC_EMAIL_UPLOAD_LOG(Business_Unit_ID, MAIL_FROM, SUBJECT, "
+			+ " ENT_BY, ENT_STAMP, Email_Number, Size, Received_Date) " + " VALUES(?, ?, ?, ?, GETDATE(), ?, ?, ?)";
+
+	/**
+	 * Update Email Body Data
+	 */
+	public static final String UPDATE_EMAIL_BODY_DATA_INTO_ECRM_CA_EMAIL_LOG = "UPDATE ECRM_CA_GENERIC_EMAIL_UPLOAD_LOG "
+			+ " SET EMAIL_BODY = ?, EMAIL_DATA = ? WHERE ID = ?";
+
+	/**
+	 * Getting fail count.
+	 */
+	public static final String GET_MAIL_UPLOAD_FAIL_COUNT = "SELECT TOP 1 FAIL_COUNT FROM ECRM_CA_GENERIC_EMAIL_UPLOAD_LOG "
+			+ " WHERE EMAIL_NUMBER = ? ORDER By ID desc";
+
+	/**
+	 * Fail count update.
+	 */
+	public static final String UPDATE_MAIL_UPLOAD_FAIL_COUNT = "UPDATE ECRM_CA_GENERIC_EMAIL_UPLOAD_LOG "
+			+ " SET FAIL_COUNT = ( CASE WHEN (FAIL_COUNT < 3 ) THEN FAIL_COUNT + 1 ELSE  (FAIL_COUNT) END ) "
+			+ " WHERE EMAIL_NUMBER = ? ";
+
+	public static final String GET_NEW_INVOICE_NAME = "DECLARE @New_File_Name Varchar(22), @Counter Int "
+			+ " Select  @Counter = Max(CAST(RIGHT(File_Name , 5) AS int)) + 1 "
+			+ " From ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) " + " Where   Business_Unit_ID = ? "
+			+ " AND CONVERT(Char(10) , Staging_Date , 103) = CONVERT(Char(10) , Getdate() , 103) "
+			+ " If @Counter Is Null " + " Begin " + " Set @Counter = 1 " + " End "
+			+ " Set @New_File_Name = UPPER(LEFT(? , 3)) + '_' + ? + '_'  " + " + CAST(year(getdate()) AS Char(4))+   "
+			+ " CASE WHEN len(month(getdate())) = 1 THEN '0' + CAST(month(getdate()) AS Char(1))  "
+			+ " ELSE  CAST(month(getdate()) AS Char(2)) End + "
+			+ " CASE WHEN len(day(getdate())) = 1 THEN '0' + CAST(day(getdate()) AS Char(1)) "
+			+ " ELSE CAST(day(getdate()) AS Char(2)) End + "
+			+ " '_' + Replicate('0' , 5 - len(@Counter)) + CAST(@Counter AS Varchar(5)) " + " SELECT @New_File_Name ";
+
+	public static String INSERT_INTO_INVOICE_QUEUE = "INSERT INTO ECRM_CA_INVOICE_QUEUE (FILE_NAME, ORIGINAL_FILE_NAME, "
+			+ " COMPANY_NAME, BUSINESS_UNIT_NAME, BUSINESS_UNIT_ID, STAGING_DATE, INVOICE_ASSIGNEMENT_QUEUE_STATUS, "
+			+ " FILE_SIZE, FILE_IDENTIFIER, DOC_TYPE, CONFIDENCE_LEVEL, IS_OCR_ENABLED, UPLOADED_BY_USER_ID, WF_STATUS, EMAIL_LOG_ID) "
+			+ " VALUES(?, ?, ?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+	public static final String GET_FTP_LOCATION = "SELECT FS.FTP_UPLOAD_LOCATION FROM ECRM_CA_FILES_SOURCE FS WITH(NOLOCK)  JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK)  ON BU.BUSINESS_UNIT_ID=FS.BUSINESS_UNIT_ID WHERE BU.UNIT_CODE=?";
+
+	/**
+	 * Update mail log details
+	 */
+	public static final String UPDATE_INTO_ECRM_CA_EMAIL_LOG = "UPDATE ECRM_CA_GENERIC_EMAIL_UPLOAD_LOG SET TOTAL_ATTACHMENTS=?,  TOTAL_ATTACHMENT_UPLOADED = ?  WHERE ID=?";
+
+	public static final String INSERT_INTO_EMAIL_DETAILS_SQL = "INSERT INTO ECRM_CA_GENERIC_EMAIL_UPLOAD_DETAILS "
+			+ "(EMAIL_DOC_LOG_ID, ORGINAL_FILE_NAME, SIZE, ENT_STAMP) " + "VALUES (?, ?, ?, GETDATE())";
+
+	/** The dynamic search fields. */
+	public static final String DYNAMIC_SEARCH_FIELDS = "Select UF.U_Col_ID, RF.Description as Column_Name, DB_Field_Name, Component_Type,RF1.Description as Component_Type From ECRM_CA_RESOURCE_FILE RF, "
+			+ " ECRM_CA_RESOURCE_FILE RF1, ( select column_id,Column_id + (Select Right(CODE_DESC,5) from ECRM_CA_CODES_DETAILS Where CODE_ID=10) U_Col_ID, "
+			+ " DB_Field_Name, Component_Type from ECRM_CA_COMPANY_COLUMN_MST join ECRM_CA_RESOURCE_FILE on Column_ID=Resource_ID "
+			+ " where Company_ID = ? and Screen_ID= ? AND Is_Searchable = 1 ) UF Where RF.Resource_ID = UF.U_Col_ID and RF1.Resource_ID = UF.Component_Type order by Column_Name ";
+
+	/** The dynamic search fields mapping. */
+	public static final String DYNAMIC_SEARCH_FIELDS_MAPPING = "Select Dynamic_Search_Field_ID, DSFM.Resource_Id, RF.Description, Display_Compo_Count "
+			+ " From ECRM_CA_DYNAMIC_SEARCH_FIELDS_MAPPING DSFM WITH (NOLOCK) join ECRM_CA_RESOURCE_FILE RF "
+			+ " on DSFM.Resource_Id = RF.Resource_Id " + " where Dynamic_Search_Field_ID = ? and Language_ID = ?";
+
+	/** The Duplicate_ file_ history. */
+	public static final String DUPLICATE_FILE_HISTORY = "Select TAB.Processed_Date, TAB.[Rule], TAB.Rule_Description, IH.File_Id, TAB.File_Name, "
+			+ " CASE when DM.Module_Name=264 then 'AP' when DM.Module_Name=265 then 'AR' END+'-'+DM.DOC_TITLE as Doc_Type, "
+			+ " IH.Vendor_Number, IH.Doc_Date, IH.Inv_Doc_ID, IH.Gross_Amount, TAB.Batch_Id, TAB.Status, "
+			+ " TAB.Reason_ID, TAB.Reason_Code, TAB.Description From ECRM_CA_STAGING_INV_HEADER IH WITH (NOLOCK) "
+			+ " JOIN DOCUMENT_MST DM ON DM.DOC_MST_ID=IH.DOC_TYPE  JOIN ( Select PD.*, RM.Reason_ID, RM.Reason_Code, PB.Description From "
+			+ " ECRM_CA_POTENTIAL_DUPLICATE_ITEM PD  JOIN ECRM_CA_POTENTIAL_BATCH_MST PB on PD.Batch_Id = PB.Batch_Id "
+			+ " LEFT OUTER JOIN ECRM_CA_REASON_MST RM on RM.Reason_ID = PB.Reason_Code  Where PD.Batch_Id in(Select Batch_Id "
+			+ " From ECRM_CA_POTENTIAL_DUPLICATE_ITEM where FILE_ID = ?  ) ) as TAB on IH.File_Id = TAB.File_Id UNION Select TAB.Processed_Date, TAB.[Rule], "
+			+ " TAB.Rule_Description, IH.Id, TAB.File_Name, '' as Doc_Type, IH.Vendor_Code, IH.Inv_Date, IH.Inv_No, IH.Gross_Amt, TAB.Batch_Id, TAB.Status, "
+			+ " TAB.Reason_ID, TAB.Reason_Code, TAB.Description From MHC_NON_BPO_PROCESSED_INVOICES IH WITH (NOLOCK) JOIN ( Select PD.*, RM.Reason_ID, RM.Reason_Code, "
+			+ " PB.Description From ECRM_CA_POTENTIAL_DUPLICATE_ITEM PD  JOIN ECRM_CA_POTENTIAL_BATCH_MST PB on PD.Batch_Id = PB.Batch_Id "
+			+ " LEFT OUTER JOIN ECRM_CA_REASON_MST RM on RM.Reason_ID = PB.Reason_Code   Where PD.Batch_Id in(Select Batch_Id From ECRM_CA_POTENTIAL_DUPLICATE_ITEM "
+			+ " where FILE_ID = ? ) ) as TAB on IH.File_Name = TAB.File_Name Order By TAB.Processed_Date, TAB.[Rule]";
+
+	/** The Duplicate_ file_ names. */
+	public static final String DUPLICATE_FILE_NAMES = "Select File_Name from ECRM_CA_POTENTIAL_DUPLICATE_ITEM where batch_id = ?";
+
+	public static final String GENERATE_FTP_PHYSICAL_PATH = "SELECT ?+'\\'+RIGHT('00'+CAST(? AS VARCHAR),3)"
+			+ " +'_'+RIGHT('00'+CAST(? AS VARCHAR),3)+'\\'+CAST(LEFT(CONVERT(VARCHAR(10),GETDATE(),112),LEN(CONVERT(VARCHAR(10),GETDATE(),112))-2) AS VARCHAR)"
+			+ " +'\\'+cast(? as varchar)+'.'+? ";
+
+	// GENERATE_FTP_PHYSICAL_PATH , GET_FTP_LOCATION , New File Id
+	public static final String UPDATE_FILE_PHYSICAL_PATH = "UPDATE ECRM_CA_INVOICE_QUEUE SET PHYSICAL_PATH=REPLACE(?,?,'') WHERE FILE_ID=?";
+
+	// INSERT INTO INSERT INTO ECRM_CA_VIEW_OCR_HORIZONTAL_DATA
+	public static final String INSERT_INTO_OCR_HORIZONTAL_DATA = "INSERT INTO ECRM_CA_VIEW_OCR_HORIZONTAL_DATA (FILE_ID, BUSINESS_UNIT_ID, Critical_Vendor) VALUES(?, ?, ?)";
+
+	/** The Physical_ path_ of_ file. */
+	public static final String PHYSICAL_PATH_OF_FILE = "Select distinct File_ID, Replace(FTP_Upload_Location, '\', '\\')+Replace(PHYSICAL_PATH, '\', '\\') as PHYSICAL_PATH,Replace(SECONDARY_FTP_UPLOAD_LOCATION, '\', '\\')+Replace(PHYSICAL_PATH, '\', '\\') as SECONDARY_PHYSICAL_PATH, "
+			+ " CONVERT(varchar(50), File_Name)+'.'+substring(Original_File_Name,charindex('.',Original_File_Name)+1,len(Original_File_Name)) as File_Name, "
+			+ " VBU.COMPANYID, IQ.Company_Name, IQ.Business_Unit_ID, IQ.Business_Unit_Name, IQ.Assigned_To_User_ID, IQ.File_SIZE, IQ.PHYSICAL_PATH as P_Path "
+			+ " from ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK) "
+			+ " JOIN dbo.ECRM_CA_VIEW_BUSINESS_UNIT VBU with(nolock) on IQ.Business_Unit_ID = VBU.BUSINESS_UNIT_ID "
+			+ " JOIN COMPANY_USER_MAPPING CM with(nolock) On IQ.Business_Unit_ID = CM.BUSINESS_UNIT_ID "
+			+ " And IQ.Assigned_To_User_ID IS NULL OR IQ.Assigned_To_User_ID like ? "
+			+ " JOIN ECRM_CA_FILES_SOURCE FS WITH(NOLOCK) on FS.BUSINESS_UNIT_ID = IQ.BUSINESS_UNIT_ID "
+			+ " Where CM.USERID like ? And FILE_ID = ?";
+
+	/** The item processing mst online. */
+	public static final String ITEM_PROCESSING_MST_ONLINE = "SELECT CP.COMPANYID, CP.COMPANY_NAME, TAB.BUSINESS_UNIT_ID, BU.UNIT_NAME, TAB.DESTINATION_QUEUE, "
+			+ "CD.CODE_ABRV as DESTINATION_QUEUE_NAME, UP.USERID " + " FROM ( "
+			+ " SELECT LEFT(COMMON_TAB_DETAIL,CHARINDEX('|',COMMON_TAB_DETAIL)-1) AS BUSINESS_UNIT_ID, "
+			+ " RIGHT(LEFT(COMMON_TAB_DETAIL,CHARINDEX(',',COMMON_TAB_DETAIL)-1),CHARINDEX('|',LEFT(COMMON_TAB_DETAIL,CHARINDEX(',',COMMON_TAB_DETAIL)-1))) AS DESTINATION_QUEUE "
+			+ " FROM ECRM_CA_COMMON_MST CM " + " JOIN ECRM_CA_COMMON_VALUE CMV ON CM.COMMON_TAB_ID = CMV.COMMON_TAB_ID "
+			+ " WHERE COMMON_TAB_NAME = 'CMN_ITEM_PROCESSING_MST_ONLINE' " + " ) AS TAB "
+			+ " JOIN ECRM_CA_BUSINESS_UNIT BU ON BU.BUSINESS_UNIT_ID=TAB.BUSINESS_UNIT_ID "
+			+ " JOIN ECRM_CA_COMPANY_PROFILE CP ON CP.COMPANYID=BU.COMPANYID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD ON CD.CODE_ID=TAB.DESTINATION_QUEUE "
+			+ " JOIN COMPANY_USER_MAPPING UP ON CP.COMPANYID=UP.COMPANY_ID AND UP.BUSINESS_UNIT_ID=BU.BUSINESS_UNIT_ID "
+			+ " WHERE CAST(LTRIM(RTRIM(USERID)) AS BIGINT) = ? "
+			+ " AND CP.COMPANYID LIKE CASE WHEN ? = '0' THEN '%' ELSE ? END";
+
+	/** The company list by user id. */
+	public static final String COMPANY_LIST_BY_USER_ID = "SELECT DISTINCT CM.COMPANYID, CM.COMPANY_NAME, UM.USERID "
+			+ " FROM ECRM_CA_COMPANY_PROFILE CM WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK) ON CM.COMPANYID = BU.COMPANYID "
+			+ " JOIN COMPANY_USER_MAPPING UM WITH(NOLOCK) ON UM.BUSINESS_UNIT_ID = BU.BUSINESS_UNIT_ID "
+			+ " WHERE CM.DELETE_FLAG = 0 And CM.STATUS = 1 AND BU.STATUS = 1 "
+			+ " And BU.DELETE_FLAG = 0 AND UM.USERID = ? order by COMPANY_NAME ";
+
+	/** The bu list by company id and user id. */
+	public static final String BU_LIST_BY_COMPANY_ID_AND_USER_ID = "SELECT BU.BUSINESS_UNIT_ID, BU.UNIT_NAME, UM.USERID "
+			+ " FROM ECRM_CA_COMPANY_PROFILE CM WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK) ON CM.COMPANYID = BU.COMPANYID "
+			+ " JOIN COMPANY_USER_MAPPING UM WITH(NOLOCK) ON UM.BUSINESS_UNIT_ID = BU.BUSINESS_UNIT_ID "
+			+ " WHERE CM.DELETE_FLAG = 0 And CM.STATUS = 1 AND BU.STATUS = 1 "
+			+ " And BU.DELETE_FLAG = 0 And CM.COMPANYID = ? AND UM.USERID = ? order by UNIT_NAME ";
+
+	/** The file info for transaction log entry. */
+	public static final String FILE_INFO_FOR_TRANSACTION_LOG_ENTRY = "Select Assigned_To_User_ID, Assigned_By_User_ID, Doc_Type, Invoice_Assignement_Queue_Status, Confidence_Level from ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) where File_ID = ?";
+
+	/** The transaction log entry. */
+	public static final String TRANSACTION_LOG_ENTRY = "Insert into ECRM_CA_TRANSACTION_LOG values(?, ?, ?, ?, ?, ?, ?, GETDATE())";
+
+	/** The transaction log list by fileid. */
+	public static final String TRANSACTION_LOG_LIST_BY_FILEID = "select TL.Transaction_ID, TL.File_ID, CD.CODE_ABRV as Description, TL.Remarks, CASE WHEN DM.Module_Name = 264 THEN 'AP' WHEN DM.Module_Name = 265 THEN 'AR' END +'-'+DM.DOC_TITLE as Doc_Type, "
+			+ " AT.FULL_NAME as Assigned_To, AB.FULL_NAME as Assigned_By, ABY.FULL_NAME as Action_by,"
+			+ " dbo.FN_FORMAT_DATE(CONVERT(Varchar(10),TL.Action_Date,111), 113)+' '+ CONVERT(Varchar(5),TL.Action_Date,114)As Action_Date"
+			+ " From ECRM_CA_TRANSACTION_LOG TL WITH(NOLOCK)"
+			+ " join ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) on tl.Transaction_Type = CD.CODE_ID"
+			+ " left join DOCUMENT_MST DM WITH(NOLOCK) on DM.DOC_MST_ID = TL.Doc_Type"
+			+ " left join ECRM_CA_USER_PROFILE AT WITH(NOLOCK) on AT.USERIDNUMBER = TL.Assigned_To"
+			+ " left join ECRM_CA_USER_PROFILE AB WITH(NOLOCK) on AB.USERIDNUMBER = TL.Assigned_By"
+			+ " join ECRM_CA_USER_PROFILE ABY WITH(NOLOCK) on ABY.USERIDNUMBER = TL.Action_By"
+			+ " where TL.File_Id = ? and ISNULL(remarks, '') not like '%Knowledge Base%' order by 1 desc";
+
+	/** The open close duplicate items count. */
+	public static final String OPEN_CLOSE_DUPLICATE_ITEMS_COUNT = "Select count(TAB.Status) as recordCount"
+			+ " From ECRM_CA_STAGING_INV_HEADER IH WITH (NOLOCK)" + " JOIN ("
+			+ " Select PD.* From ECRM_CA_POTENTIAL_DUPLICATE_ITEM PD WITH (NOLOCK)"
+			+ " JOIN ECRM_CA_POTENTIAL_BATCH_MST PB WITH (NOLOCK) on PD.Batch_Id = PB.Batch_Id"
+			+ " Where PD.Batch_Id in(Select Batch_Id From ECRM_CA_POTENTIAL_DUPLICATE_ITEM where FILE_ID = ?" + " )"
+			+ " ) as TAB on IH.File_Id = TAB.File_Id AND TAB.Status = ?";
+
+// To check whether vendor ocr field is mapped with BU or not.
+	/** The Constant IS_VENDOR_OCR_FIELD_MAPPED_WITH_BU. */
+	public static final String IS_VENDOR_OCR_FIELD_MAPPED_WITH_BU = "Select 1 from ECRM_CA_BU_VENDOR_OCR_FILED_MAPPING WITH (NOLOCK) where Field_ID = ?";
+
+// Get doc. type list to map with master template
+	/** The Constant DOC_TYPE_LIST_TO_MAP_MASTER_TEMPLATE. */
+	public static final String DOC_TYPE_LIST_TO_MAP_MASTER_TEMPLATE = "Select AV.DOC_MST_ID as DOC_MST_ID, CD.CODE_ABRV+'-'+ DM.DOC_TITLE as DOC_TITLE, TAB.Doc_ID"
+			+ " From APPLICATION_VALIDITY AV WITH (NOLOCK)"
+			+ " JOIN DOCUMENT_MST DM WITH (NOLOCK) ON AV.DOC_MST_ID=DM.DOC_MST_ID"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH (NOLOCK) ON DM.Module_Name=CD.CODE_ID" + " LEFT OUTER JOIN" + " ("
+			+ " Select TM.BU_ID, TDM.DOC_ID From ECRM_CA_OCR_TEMPLATE_MASTER TM"
+			+ " JOIN ECRM_CA_OCR_TEMPLATE_DOC_MAPPING TDM ON TM.ID=TDM.OCR_Template_ID AND Is_Active <> 0 "
+			+ " ) As TAB ON TAB.DOC_ID=AV.DOC_MST_ID and TAB.BU_ID=AV.SITE_ID"
+			+ " where AV.STATUS_ID=? and AV.SITE_ID=? AND AV.DOC_MST_ID != ?"
+			+ " AND TAB.Doc_ID IS NULL order by DOC_TITLE";
+
+// Get doc. type list to map with master template with selected doc. type to
+// map
+	/** The Constant DOC_TYPE_LIST_TO_MAP_MASTER_TEMPLATE_WITH_SELECTED. */
+	public static final String DOC_TYPE_LIST_TO_MAP_MASTER_TEMPLATE_WITH_SELECTED = "Select AV.DOC_MST_ID as DOC_MST_ID, CD.CODE_ABRV+'-'+ DM.DOC_TITLE as DOC_TITLE, "
+			+ "Case when TAB.Doc_ID IS NULL THEN '0' ELSe '1' END AS 'Status'"
+			+ " From APPLICATION_VALIDITY AV WITH (NOLOCK)"
+			+ " JOIN DOCUMENT_MST DM WITH (NOLOCK) ON AV.DOC_MST_ID=DM.DOC_MST_ID"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH (NOLOCK) ON DM.Module_Name=CD.CODE_ID" + " LEFT OUTER JOIN" + " ("
+			+ " Select TM.BU_ID, TDM.DOC_ID From ECRM_CA_OCR_TEMPLATE_MASTER TM WITH (NOLOCK)"
+			+ " JOIN ECRM_CA_OCR_TEMPLATE_DOC_MAPPING TDM WITH (NOLOCK) ON TM.ID=TDM.OCR_Template_ID AND Is_Active <> 0 "
+			+ " ) As TAB ON TAB.DOC_ID=AV.DOC_MST_ID and TAB.BU_ID=AV.SITE_ID"
+			+ " where AV.STATUS_ID=? and AV.SITE_ID=? AND TAB.Doc_ID IS NULL AND AV.DOC_MST_ID != ? " + " UNION All"
+			+ " Select AV.DOC_MST_ID as DOC_MST_ID, CD.CODE_ABRV+'-'+ DM.DOC_TITLE as DOC_TITLE, Case when TAB.Doc_ID IS NULL THEN '0' ELSe '1' END AS 'Status'"
+			+ " From APPLICATION_VALIDITY AV WITH (NOLOCK)"
+			+ " JOIN DOCUMENT_MST DM WITH (NOLOCK) ON AV.DOC_MST_ID=DM.DOC_MST_ID"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH (NOLOCK) ON DM.Module_Name=CD.CODE_ID" + " JOIN" + " ("
+			+ " Select TM.BU_ID, TDM.DOC_ID From ECRM_CA_OCR_TEMPLATE_MASTER TM WITH (NOLOCK)"
+			+ " JOIN ECRM_CA_OCR_TEMPLATE_DOC_MAPPING TDM WITH (NOLOCK) ON TM.ID=TDM.OCR_Template_ID AND Ocr_Template_ID = ? AND Is_Active <> 0 "
+			+ " ) As TAB ON TAB.DOC_ID=AV.DOC_MST_ID and TAB.BU_ID=AV.SITE_ID"
+			+ " where AV.STATUS_ID=? and AV.SITE_ID=? AND AV.DOC_MST_ID != ?" + " order by DOC_TITLE";
+
+	/** The Constant IS_VENDOR_NAME_CODE_EXIST. */
+	public static final String IS_VENDOR_NAME_CODE_EXIST = "SELECT count(*) FROM ECRM_CA_VENDOR_MST WITH (NOLOCK) where Vendor_name+' ~ '+ Vendor_code = ?";
+
+	/** The Constant GET_FIRST_FILE_FOR_BU_DOCTYPE_VENDOR. */
+	public static final String GET_FIRST_FILE_FOR_BU_DOCTYPE_VENDOR = "Select top 1 OHD.File_ID From ECRM_CA_VIEW_OCR_HORIZONTAL_DATA OHD WITH (NOLOCK)"
+			+ " JOIN ECRM_CA_INVOICE_QUEUE IQ WITH (NOLOCK) ON OHD.File_ID = IQ.File_ID"
+			+ " JOIN ECRM_CA_OCR_XML OX WITH (NOLOCK) ON IQ.File_ID = OX.File_ID"
+			+ " JOIN ECRM_CA_VENDOR_MST VM WITH (NOLOCK) ON OHD.Vendor_Code = VM.Vendor_Code AND VM.BU_ID = OHD.BUSINESS_UNIT_ID"
+			+ " where OHD.Business_Unit_ID = ? AND IQ.Doc_Type = ?"
+			+ " AND VM.Vendor_name+' ~ '+ VM.Vendor_code = ? order by IQ.File_ID DESC";
+
+	/** The Constant GET_OCR_XML_DATA_BY_FILE_ID. */
+	public static final String GET_OCR_XML_DATA_BY_FILE_ID = "Select File_Data From ECRM_CA_OCR_XML WITH (NOLOCK) where FILE_ID = ? ";
+
+	/** The Constant GET_OCR_XML_DATA_BY_TEMPLATE_ID. */
+	public static final String GET_OCR_XML_DATA_BY_TEMPLATE_ID = "Select File_Data from ECRM_CA_OCR_XML OX WITH (NOLOCK) JOIN ECRM_CA_OCR_XML_DATA XD WITH (NOLOCK) ON XD.File_ID = OX.File_ID "
+			+ " JOIN ECRM_CA_FILE_IMPORT_TEMPLATES IT WITH (NOLOCK) ON XD.Template_ID = IT.TEMPLATE_ID where IT.TEMPLATE_ID = ? ";
+
+	/** The Constant GET_TEMPLATE_INFO_BY_FILE_ID. */
+	public static final String GET_TEMPLATE_INFO_BY_FILE_ID = "Select IQ.Company_Name, IQ.Business_Unit_ID, IQ.Business_Unit_Name, IQ.Doc_Type as Doc_Id, VM.Vendor_ID, VM.Vendor_Name, VM.Vendor_Code,"
+			+ " Case WHEN DM.Module_Name=264 THEN 'AP' WHEN DM.Module_Name=265 THEN 'AR' END+'-'+DM.Doc_Title as Doc_Type, "
+			+ " TM.ID as Template_ID, TM.Date_Format, CD.CODE_ABRV as DateFormat, Is_Mst_Template as 'Template_Type', "
+			+ " Case when Is_Active=1 THEN 'Active' ELSe 'In-Active' END AS 'Status', Is_Active, "
+			+ " OCR_VENDOR_NAME, OCR_VENDOR_SEARCH_TAG_1, OCR_VENDOR_SEARCH_TAG_2, OCR_VENDOR_EXCLUDE_SEARCH_TAG "
+			+ " From ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK)"
+			+ " JOIN ECRM_CA_VIEW_OCR_HORIZONTAL_DATA OHD WITH(NOLOCK) ON IQ.File_ID = OHD.File_ID"
+			+ " JOIN DOCUMENT_MST DM WITH(NOLOCK) ON DM.DOC_MST_ID = IQ.Doc_Type"
+			+ " JOIN ECRM_CA_VENDOR_MST VM WITH(NOLOCK) ON OHD.Vendor_Code = VM.Vendor_Code AND VM.BU_ID = OHD.BUSINESS_UNIT_ID "
+			+ " JOIN ECRM_CA_OCR_TEMPLATE_MASTER TM WITH(NOLOCK) ON VM.Vendor_ID = TM.Vendor_ID AND VM.BU_ID = OHD.BUSINESS_UNIT_ID AND TM.DOC_ID = IQ.DOC_TYPE"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON TM.Date_Format=CD.CODE_ID" + " where IQ.File_ID = ? ";
+
+	/** The Constant GET_COLUMNS_NAME_BY_TABLE_NAME. */
+	public static final String GET_COLUMNS_NAME_BY_TABLE_NAME = "Select UPPER(COl.Name) as Column_Name from sys.columns COL"
+			+ " JOIN SYS.OBJECTS OBJ ON COL.object_id=OBJ.object_id" + " where OBJ.Type='U' and OBJ.name=?";
+
+	/** The Constant GET_VENDOR_FIELD_MST_COUNT. */
+	public static final String GET_VENDOR_FIELD_MST_COUNT = "Select count(Field_Name) as COUNT From ECRM_CA_VENDOR_OCR_FIELD_MASTER WITH (NOLOCK) where Caption = ?";
+
+	/** The Constant GET_VENDOR_FIELD_MST_COUNT_ON_UPDATE. */
+	public static final String GET_VENDOR_FIELD_MST_COUNT_ON_UPDATE = "Select count(Field_Name) as COUNT From ECRM_CA_VENDOR_OCR_FIELD_MASTER WITH (NOLOCK) where Caption = ? AND ID != ?";
+
+	/** The Constant GET_OCR_XML_DATA_BYFILE_ID. */
+	public static final String GET_OCR_XML_DATA_BYFILE_ID = "Select Data_ID, File_ID, Template_ID, Record_ID, Field_ID, Row_Order_No, Field_Value, Confidence_Level"
+			+ " From ECRM_CA_OCR_XML_DATA OXD with(NOLOCK) where OXD.File_ID = ?";
+
+	/** The Constant GET_VENDOR_OCR_DATA. */
+	public static final String GET_VENDOR_OCR_DATA = "Select OXD.Data_ID, OXD.File_ID, OXD.Template_ID, OXD.Field_ID, VOFM.Field_Name, VOFM.Caption, OXD.Field_Value, "
+			+ " OXD.Confidence_Level, CD2.CODE_ABRV as Field_Status, OTM.Date_Format, CD1.CODE_ABRV as Date_Format_Val, "
+			+ " OTM.IS_Active, OTD.Order_By, OTD.Is_Mandatory, VOFM.Data_Type, CD3.CODE_ABRV as Data_Type_Val, VOFM.Field_Length, VOFM.Decimal_Value, VOFM.Is_Bound, OTD.Field_Caption "
+			+ " From ECRM_CA_OCR_XML_DATA OXD WITH(NOLOCK)  JOIN ECRM_CA_OCR_TEMPLATE_MASTER OTM WITH(NOLOCK) ON OXD.Template_ID = OTM.ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD1 WITH(NOLOCK) ON OTM.Date_Format = CD1.CODE_ID "
+			+ " JOIN ECRM_CA_OCR_TEMPLATE_DETAIL OTD WITH(NOLOCK) ON OXD.Template_ID = OTD.Ocr_Template_ID AND OXD.Field_ID = OTD.Ocr_Field_ID "
+			+ " JOIN ECRM_CA_VENDOR_OCR_FIELD_MASTER VOFM WITH(NOLOCK) ON OXD.Field_ID = VOFM.ID  JOIN ECRM_CA_CODES_DETAILS CD2 WITH(NOLOCK) ON OXD.Confidence_Level = CD2.CODE_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD3 WITH(NOLOCK) ON VOFM.Data_Type = CD3.CODE_ID  where OXD.File_ID = ? order by OTD.Order_By , OXD.Data_ID ";
+
+	/** The Constant GET_DOC_TYPE_BY_OCR_FIELD_MST_ID. */
+	public static final String GET_DOC_TYPE_BY_OCR_FIELD_MST_ID = "Select CD.CODE_ABRV as Data_Type_Val, VOFM.Field_Name From ECRM_CA_VENDOR_OCR_FIELD_MASTER VOFM WITH(NOLOCK)"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON VOFM.Data_Type = CD.CODE_ID" + " where ID = ?";
+
+	/** The Constant GET_OCR_XML_FIELD_DATA_BY_FILE_ID. */
+	public static final String GET_OCR_XML_FIELD_DATA_BY_FILE_ID = "Select Template_ID, Field_ID, Field_Value From ECRM_CA_OCR_XML_DATA WITH(NOLOCK) where File_ID = ?";
+
+	/** The Constant UPDATE_OCR_TEMPLATE_DETAIL_OCR_VALUE. */
+	public static final String UPDATE_OCR_TEMPLATE_DETAIL_OCR_VALUE = "Update ECRM_CA_OCR_TEMPLATE_DETAIL set Ocr_Value = ? where Ocr_Template_ID = ? and Ocr_Field_ID = ?";
+
+	/** The Constant GET_INVOICE_ASSIGNED_USER_BY_FILE_ID. */
+	public static final String GET_INVOICE_ASSIGNED_USER_BY_FILE_ID = "Select Assigned_To_User_Name, Assigned_To_User_ID, Assigned_Date, Business_Unit_ID From ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) where File_ID = ?";
+
+	/** The Constant VALIDATE_DOC_TYPE_ACCESS. */
+	public static final String VALIDATE_DOC_TYPE_ACCESS = "Select count(1) as validate From DOCUMENT_MST DM WITH(NOLOCK) JOIN USER_DOC_ACCESS UDA WITH(NOLOCK) ON DM.DOC_MST_ID = UDA.DOC_MST_ID"
+			+ " where USER_INFO_ID = ? and site_id = ? AND UDA.DOC_MST_ID = ?";
+
+	/** The Constant UPDATE_INVOICE_QUEUE_ON_DOC_TYPE_CHANGED. */
+	public static final String UPDATE_INVOICE_QUEUE_ON_DOC_TYPE_CHANGED = "Update ECRM_CA_INVOICE_QUEUE set Doc_Type = ?, Assigned_To_User_Name = ?, Assigned_To_User_ID = ?,"
+			+ " Assigned_Date = ?, Invoice_Doc_ID = ?, Batch_No = ?, Last_Action_By = ?, Last_Action_Date= GETDATE() where FILE_ID = ?";
+
+	/** The Constant UPDATE_INVOICE_QUEUE_ON_DELEGATE_RETURN. */
+	public static final String UPDATE_INVOICE_QUEUE_ON_DELEGATE_RETURN = "Update ECRM_CA_INVOICE_QUEUE set Invoice_Assignement_Queue_Status = ?, Delegate_To = NULL, "
+			+ " Delegated_By = NULL, Delegation_Stamp = NULL, Last_Action_By = ?, Last_Action_Date= GETDATE(), TRANS_REASON_ID = ? where FILE_ID = ?";
+
+	/** The Constant GET_USER_INFO_BY_USER_ID_NO. */
+	public static final String GET_USER_INFO_BY_USER_ID_NO = "Select USERIDNUMBER, FIRST_NAME, MIDDLE_NAME, LAST_NAME, FULL_NAME, USERID, PASSWORD, ROLEID,"
+			+ " GRANT_RECORD_ACCESS_PUBLIC, ACTIVE, DELETE_FLAG From ECRM_CA_USER_PROFILE WITH(NOLOCK) where USERIDNUMBER = ?";
+
+	/** The Constant EDIT_VALIDATE_IN_ACTIVE_TEMPLATE. */
+	public static final String EDIT_VALIDATE_IN_ACTIVE_TEMPLATE = "SELECT count(*) From ECRM_CA_OCR_TEMPLATE_MASTER WITH(NOLOCK) where BU_ID = ? AND Doc_ID = ? "
+			+ " AND Is_Active = 1";
+
+	/** The Constant CHECK_DUPLICATE_BEFORE_OCR_DETAIL_UPDATE. */
+	public static final String CHECK_DUPLICATE_BEFORE_OCR_DETAIL_UPDATE = "SELECT count(*) FROM ECRM_CA_VIEW_OCR_HORIZONTAL_DATA WITH(NOLOCK)"
+			+ " WHERE FILE_ID != ? AND Vendor_Code = ? AND DOC_NO = ? AND "
+			+ " dbo.FN_FORMAT_DATE(dbo.FN_FORMAT_DATE(DOC_DATE, 113), 115) = dbo.FN_FORMAT_DATE(?, 115)";
+
+	/** The Constant GET_DOC_TYPE_LIST_BY_BUID. */
+	public static final String GET_DOC_TYPE_LIST_BY_BUID = "SELECT AV.DOC_MST_ID AS DOC_MST_ID, CD.Code_abrv+'-'+ DM.DOC_TITLE AS DOC_TITLE "
+			+ " FROM APPLICATION_VALIDITY AV WITH(NOLOCK) JOIN DOCUMENT_MST DM WITH(NOLOCK) ON AV.DOC_MST_ID=DM.DOC_MST_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON DM.Module_Name = CD.CODE_ID"
+			+ " WHERE AV.STATUS_ID=10 and AV.SITE_ID=? ORDER BY DOC_TITLE";
+
+	/** The Constant GET_DOC_TYPE_LIST_BY_BUID_MODULEID. */
+	public static final String GET_DOC_TYPE_LIST_BY_BUID_MODULEID = "SELECT AV.DOC_MST_ID AS DOC_MST_ID, CD.Code_abrv+'-'+ DM.DOC_TITLE AS DOC_TITLE "
+			+ " FROM APPLICATION_VALIDITY AV WITH(NOLOCK) JOIN DOCUMENT_MST DM WITH(NOLOCK) ON AV.DOC_MST_ID=DM.DOC_MST_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON DM.Module_Name = CD.CODE_ID AND DM.Module_Name= ? "
+			+ " WHERE AV.STATUS_ID=10 and AV.SITE_ID=? ORDER BY DOC_TITLE";
+
+	/** The Constant GET_DOC_TYPE_LIST_BY_BUID_DQID. */
+	public static final String GET_DOC_TYPE_LIST_BY_BUID_DQID = "SELECT AV.DOC_MST_ID AS DOC_MST_ID, CD.Code_abrv+'-'+ DM.DOC_TITLE AS DOC_TITLE "
+			+ " FROM APPLICATION_VALIDITY AV WITH(NOLOCK) JOIN DOCUMENT_MST DM WITH(NOLOCK) ON AV.DOC_MST_ID=DM.DOC_MST_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON DM.Module_Name = CD.CODE_ID AND DM.DEST_QUEUE_TYPE = ? "
+			+ " WHERE AV.STATUS_ID=10 and AV.SITE_ID=? ORDER BY DOC_TITLE";
+
+	/** The Constant UPDATE_VENDOR_MST_EMAIL. */
+	public static final String UPDATE_VENDOR_MST_EMAIL = "UPDATE ECRM_CA_VENDOR_MST SET Email_ID = ?, Upd_By = ?,Upd_Stamp = GETDATE() WHERE Vendor_ID = ?";
+
+	/** The Constant GET_VENDOR_EMAIL_ID_BY_FILE_IDS. */
+	public static final String GET_VENDOR_EMAIL_ID_BY_FILE_IDS = "Select distinct IQ.File_ID, Replace(FTP_Upload_Location, '\', '\\')+Replace(CASE WHEN IQ.PHYSICAL_PATH = 'NA' THEN '' ELSE IQ.PHYSICAL_PATH END, '\', '\\') as PHYSICAL_PATH, "
+			+ " CONVERT(varchar(50), File_Name)+'.'+substring(Original_File_Name,charindex('.',Original_File_Name)+1,len(Original_File_Name)) as File_Name, "
+			+ " IQ.PHYSICAL_PATH AS P_PATH, VM.Vendor_ID, VM.Email_ID, IQ.Company_Name+'-'+IQ.Business_Unit_Name AS Comp_BU, File_Name AS Invoice_Name "
+			+ " FROM ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_VIEW_OCR_HORIZONTAL_DATA HD WITH(NOLOCK) ON IQ.File_ID = HD.FILE_ID"
+			+ " LEFT JOIN ECRM_CA_VENDOR_MST VM WITH(NOLOCK) ON HD.Vendor_ID=VM.Vendor_ID"
+			+ " JOIN ECRM_CA_FILES_SOURCE FS WITH(NOLOCK) on FS.BUSINESS_UNIT_ID = IQ.BUSINESS_UNIT_ID "
+			+ " Where IQ.FILE_ID IN(?";
+
+	/** The Constant INSERT_INTO_SHARE_DOCUMENT_ON_MAIL. */
+	public static final String INSERT_INTO_SHARE_DOCUMENT_ON_MAIL = "INSERT INTO ECRM_CA_SHARE_DOCUMENT ("
+			+ " File_ID, Email_ID, Subject, Comment, Ent_By, Ent_Stamp, C_IP_Address, CC_EMAIL_ID) VALUES(?, ?, ?, ?, ?, GETDATE(), ?, ?)";
+
+	/** The Constant UPDATE_INVOICE_LAST_ACTION_DATE_BY. */
+	public static final String UPDATE_INVOICE_LAST_ACTION_DATE_BY = "UPDATE ECRM_CA_INVOICE_QUEUE SET Last_Action_By = ?, Last_Action_Date = GETDATE() WHERE File_ID = ?";
+
+	/** The Constant GET_FILE_LOCATION_BY_BU_ID. */
+	public static final String GET_FILE_LOCATION_BY_BU_ID = "SELECT FTP_Upload_Location FROM ECRM_CA_FILES_SOURCE WITH(NOLOCK) WHERE BUSINESS_UNIT_ID = ?";
+
+	/** The file info for transaction log entry by file ids. */
+	public static final String FILE_INFO_FOR_TRANSACTION_LOG_ENTRY_BY_FILE_IDS = "Select File_ID, Assigned_To_User_ID, Assigned_By_User_ID, Doc_Type, Invoice_Assignement_Queue_Status, Confidence_Level from ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) where File_ID IN(?)";
+
+	/** The get user last comment on file sharing. */
+	public static final String GET_USER_LAST_COMMENT_ON_FILE_SHARING = "SELECT TOP 1 COMMENT FROM ECRM_CA_SHARE_DOCUMENT WITH (NOLOCK) WHERE ENT_BY = ? ORDER BY ENT_STAMP DESC";
+
+	/** The insert into send mail log. */
+	public static final String INSERT_INTO_SEND_MAIL_LOG = "INSERT INTO ECRM_CA_SEND_EMAIL_LOG (SEND_BY, SEND_DATE, SEND_TYPE) VALUES(?, GETDATE(), ?)";
+
+	/** The get count mail send by user today. */
+	public static final String GET_COUNT_MAIL_SEND_BY_USER_TODAY = "SELECT count(ID) FROM ECRM_CA_SEND_EMAIL_LOG WITH (NOLOCK) WHERE SEND_BY = ? "
+			+ "AND dbo.FN_FORMAT_DATE(dbo.FN_FORMAT_DATE(SEND_DATE,113),115) = dbo.FN_FORMAT_DATE(GETDATE(),117) ";
+
+	/** The get company bu name with id by user id. */
+	public static final String GET_COMPANY_BU_NAME_WITH_ID_BY_USER_ID = "SELECT CAST(BU.BUSINESS_UNIT_ID AS VARCHAR) + '~' + CAST(CP.COMPANYID AS VARCHAR) AS COMBUID, CP.COMPANY_NAME + ' - ' + BU.UNIT_NAME AS COMPUNIT FROM COMPANY_USER_MAPPING CUM"
+			+ " JOIN ECRM_CA_VIEW_COMPANY_PROFILE CP WITH (NOLOCK) ON CUM.COMPANY_ID = CP.COMPANYID"
+			+ " JOIN ECRM_CA_VIEW_BUSINESS_UNIT BU WITH (NOLOCK) ON CP.COMPANYID = BU.COMPANYID AND CUM.BUSINESS_UNIT_ID = BU.BUSINESS_UNIT_ID"
+			+ " WHERE CUM.USERID = ? Order By COMPUNIT";
+
+	/** The Constant GET_NEW_BATCH_ID_BULK_UPLOAD. */
+	public static final String GET_NEW_BATCH_ID_BULK_UPLOAD = "SELECT MAX(BATCH_NO)+1 BATCHNUMBER FROM ECRM_CA_IMAGE_UPLOAD_LOG WITH (NOLOCK) WHERE SOURCE=?";
+
+	/** The Constant GET_IMAGE_UPLOAD_LOG. */
+	public static final String GET_IMAGE_UPLOAD_LOG = "SELECT LOG.Image_Log_Id, BATCH_NO, FILE_NAME, ORIGINAL_FILE_NAME, LOG.OPERATION_TYPE FILE_TYPE,LOG.STATUS UPLOAD_STATUS,LOG.SIZE,"
+			+ " CASE WHEN ISNULL(LOG.SIZE,0)>=1048576 THEN CAST(CAST(ROUND((CAST(ISNULL(LOG.SIZE,0) AS NUMERIC)/CAST(1048576 AS NUMERIC)),3)AS NUMERIC(18,3)) AS VARCHAR(50))+'MB' "
+			+ " ELSE CAST(CAST(ROUND((CAST(ISNULL(LOG.SIZE,0) AS NUMERIC)/CAST(1024 AS NUMERIC)),3) AS NUMERIC(18,3)) AS VARCHAR(50))+'KB' END +' ('+CAST(ISNULL(LOG.SIZE,0) AS VARCHAR(50))+')' AS SIZE_DESC"
+			+ " ,CODE.CODE_ABRV OPERATION_TYPE, CODE1.CODE_ABRV UPLOAD_STATUS_VIEW "
+			+ " FROM ECRM_CA_IMAGE_UPLOAD_LOG LOG WITH (NOLOCK) "
+			+ " JOIN ECRM_CA_CODES_DETAILS CODE WITH (NOLOCK) ON(CODE.CODE_ID=LOG.OPERATION_TYPE)"
+			+ " JOIN ECRM_CA_CODES_DETAILS CODE1 WITH (NOLOCK) ON(CODE1.CODE_ID=LOG.STATUS)"
+			+ " WHERE BATCH_NO= ? AND SOURCE = 'BU' ";
+
+	/** The Constant UPDATE_BULK_UPLOAD_LOG_STARTSTAMP. */
+	public static final String UPDATE_BULK_UPLOAD_LOG_STARTSTAMP = "UPDATE ECRM_CA_IMAGE_UPLOAD_LOG SET Upload_Stamp=GETDATE(),STATUS=508 WHERE Batch_No=? AND Image_Log_Id=?";
+
+	/** The Constant UPDATE_FILE_UPLOAD_STATE. */
+	public static final String UPDATE_FILE_UPLOAD_STATE = "UPDATE ECRM_CA_IMAGE_UPLOAD_LOG SET STATUS=? WHERE Batch_No=? AND Image_Log_Id=?";
+
+	/** The Constant UPDATE_FILE_UPLOAD_STATE_BY_BATCH. */
+	public static final String UPDATE_FILE_UPLOAD_STATE_BY_BATCH = "UPDATE ECRM_CA_IMAGE_UPLOAD_LOG SET STATUS=? WHERE Batch_No=? AND STATUS IN(504, 508)";
+
+	/** The Constant GET_COUNT_BY_BATCH_NO_AND_UPLOAD_STATUS. */
+	public static final String GET_COUNT_BY_BATCH_NO_AND_UPLOAD_STATUS = "Select count(*) from ECRM_CA_IMAGE_UPLOAD_LOG WITH (NOLOCK) where Batch_No = ? AND STATUS IN(508, 510)";
+
+	/** The Constant GET_OCR_XML_FIELD_DATA_BY_FILE_ID_AND_FIELD_ID. */
+	public static final String GET_OCR_XML_FIELD_DATA_BY_FILE_ID_AND_FIELD_ID = "Select Template_ID, Field_ID, Field_Value From ECRM_CA_OCR_XML_DATA WITH(NOLOCK) where File_ID = ? AND Field_Id = ?";
+
+	/** The Constant GET_NOT_MOVED_FILE_COUNT_STAGE_TO_RECEIVE. */
+	public static final String GET_NOT_MOVED_FILE_COUNT_STAGE_TO_RECEIVE = "SELECT count(IQ.FILE_ID) FROM ECRM_CA_INVOICE_QUEUE IQ WITH (NOLOCK) "
+			+ " JOIN ( SELECT VALUE FROM DBO.FN_BPO_SPLIT(?,'~') ) AS TAB ON TAB.VALUE=IQ.FILE_ID AND IQ.INVOICE_ASSIGNEMENT_QUEUE_STATUS = 244";
+
+	/** The Constant GET_FILE_MOVE_STATUS_STAGE_TO_RECEIVE. */
+	public static final String GET_FILE_MOVE_STATUS_STAGE_TO_RECEIVE = "SELECT IQ.FILE_ID, FILE_NAME, INVOICE_ASSIGNEMENT_QUEUE_STATUS"
+			/*
+			 * +
+			 * ", Case WHEN INVOICE_ASSIGNEMENT_QUEUE_STATUS = 213 THEN 'File Moved to Received.'"
+			 * +
+			 * " WHEN INVOICE_ASSIGNEMENT_QUEUE_STATUS = 236 THEN 'File Moved to Erroneous Invoice due to duplicate.'"
+			 * +
+			 * " WHEN INVOICE_ASSIGNEMENT_QUEUE_STATUS = 244 THEN 'File not moved to received Queue, Please check for junk charectors in OCR fields.'"
+			 * +
+			 * " WHEN INVOICE_ASSIGNEMENT_QUEUE_STATUS = 362 THEN 'File Moved to Reconciliation.'"
+			 * + " END File_Status "
+			 */
+			+ " FROM ECRM_CA_INVOICE_QUEUE IQ WITH (NOLOCK) " + " JOIN ( "
+			+ " SELECT VALUE FROM DBO.FN_BPO_SPLIT(?,'~')"
+			+ " ) AS TAB ON TAB.VALUE=IQ.FILE_ID AND IQ.INVOICE_ASSIGNEMENT_QUEUE_STATUS = 244";
+
+	/** The Constant UPDATE_TEMPLATE_DATE_FORMAT. */
+	public static final String UPDATE_TEMPLATE_DATE_FORMAT = "UPDATE ECRM_CA_OCR_TEMPLATE_MASTER SET DATE_FORMAT = ? WHERE ID = ?";
+
+	/** The Constant SET_DOC_TYPE_DISABLE_ALLREADY_OCR. */
+	public static final String SET_DOC_TYPE_DISABLE_ALLREADY_OCR = "SELECT DOC_TYPE FROM ECRM_CA_OCR_XML_DATA OXD"
+			+ " JOIN ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK) ON IQ.FILE_ID=OXD.FILE_ID"
+			+ " JOIN (SELECT ID FROM ECRM_CA_OCR_TEMPLATE_MASTER WHERE ID = ? OR PARENT_TEMPLATE_ID = ?) AS TAB ON TAB.ID=OXD.TEMPLATE_ID"
+			+ " WHERE IQ.DOC_TYPE IN(SELECT VALUE FROM DBO.FN_BPO_SPLIT(?,',')) AND BUSINESS_UNIT_ID = ? AND OXD.CONFIDENCE_LEVEL = 259"
+			+ " GROUP BY DOC_TYPE ORDER BY DOC_TYPE";
+
+	/** The Constant GET_USER_ROLE_BY_USER_ID. */
+	public static final String GET_USER_ROLE_BY_USER_ID = "SELECT ID, USERIDNUMBER, URM.ROLE_ID, ROLE_NAME, ROLE_DESCRIPTION FROM ECRM_CA_USER_ROLES_MAPPING URM JOIN ECRM_CA_ROLES R ON URM.ROLE_ID = R.ROLE_ID WHERE USERIDNUMBER = ?";
+
+	public static final String GET_ALL_USER_BY_USER_COMPANY_MAPPING = "SELECT DISTINCT USERIDNUMBER, FIRST_NAME+' '+LAST_NAME AS USER_NAME"
+			+ " FROM ECRM_CA_USER_PROFILE UP WITH(NOLOCK) JOIN COMPANY_USER_MAPPING CU WITH(NOLOCK)"
+			+ " ON UP.USERIDNUMBER=CU.USERID" + " JOIN" + " (SELECT CM.COMPANY_ID"
+			+ " FROM COMPANY_MST CM WITH(NOLOCK) JOIN DIVISION_MST DM WITH(NOLOCK)"
+			+ " ON CM.DIVISION_ID=DM.DIVISION_ID" + " AND CM.DIVISION_ID =(SELECT DIVISION_ID"
+			+ " FROM COMPANY_MST WITH(NOLOCK)"
+			+ " WHERE COMPANY_ID=(SELECT TOP 1 COMPANY_ID FROM COMPANY_USER_MAPPING WITH(NOLOCK) WHERE USERID=?))) CMP"
+			+ " ON CU.COMPANY_ID=CMP.COMPANY_ID ORDER BY USER_NAME";
+
+	public static final String GET_ALL_USER_BY_COMPANY_AND_USER_ID = "SELECT DISTINCT UP.USERIDNUMBER, FIRST_NAME+' '+LAST_NAME AS USER_NAME FROM ECRM_CA_USER_PROFILE UP WITH(NOLOCK) "
+			+ " JOIN COMPANY_USER_MAPPING CUM WITH(NOLOCK) ON UP.USERIDNUMBER=CUM.USERID WHERE CUM.COMPANY_ID=?"
+			+ " AND CUM.BUSINESS_UNIT_ID IN (SELECT BUSINESS_UNIT_ID FROM COMPANY_USER_MAPPING WITH(NOLOCK) WHERE COMPANY_ID=? AND USERID= ?)"
+			+ " AND UP.USERIDNUMBER NOT IN (1, 2) AND UP.ACTIVE=1 order by UP.USERIDNUMBER";
+
+	public static final String GET_COMMON_MASTER_VALUE = "SELECT CV.COM_VALUE_ID, CV.COMMON_TAB_VALUE FROM ECRM_CA_COMMON_VALUE CV WITH(NOLOCK)"
+			+ " JOIN ECRM_CA_COMMON_MST CM WITH(NOLOCK) ON CV.COMMON_TAB_ID=CM.COMMON_TAB_ID WHERE CM.STATUS_ID=10 AND CV.STATUS_ID=10 AND CM.COMMON_TAB_NAME=?";
+
+	public static final String GET_REASON_LIST_BY_COMPANY_AND_USER_ID = "SELECT REASON_CODE, REASON_ID FROM ECRM_CA_REASON_MST WITH (NOLOCK) WHERE CATEGORY =? AND COMPANY_ID=? AND STATUS= 1";
+
+// BPO REPORTS
+	public static final String GET_DAILY_STAGING_SUMMARY_COUNT = "SELECT COUNT(1) FROM ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK) JOIN DOCUMENT_MST DM WITH(NOLOCK) "
+			+ " ON IQ.DOC_TYPE= DM.DOC_MST_ID JOIN ECRM_CA_VIEW_BUSINESS_UNIT BU WITH(NOLOCK) ON IQ.BUSINESS_UNIT_ID = BU.BUSINESS_UNIT_ID "
+			+ " JOIN COMPANY_USER_MAPPING CM WITH(NOLOCK) ON BU.BUSINESS_UNIT_ID = CM.BUSINESS_UNIT_ID JOIN "
+			+ " ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON DM.MODULE_NAME = CD.CODE_ID "
+			+ " WHERE CM.COMPANY_ID LIKE CASE  WHEN ?='0' THEN '%' ELSE ? END "
+			+ " AND IQ.BUSINESS_UNIT_ID LIKE CASE WHEN ?= '0' THEN '%' ELSE ? END AND CD.CODE_ABRV LIKE CASE WHEN ?= 'ALL' THEN '%' ELSE ? END "
+			+ " AND IQ.STAGING_DATE >=  DBO.FN_FORMAT_DATE(?,115) AND IQ.STAGING_DATE <= DBO.FN_FORMAT_DATE(?,115) + ' 23:59:59.999'"
+			+ " AND IQ.ASSIGNED_TO_USER_ID LIKE ?";
+
+	public static final String GET_DAILY_RECEIVING_SUMMARY_COUNT = "SELECT COUNT(1) FROM ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK) JOIN DOCUMENT_MST DM WITH(NOLOCK) ON IQ.DOC_TYPE= DM.DOC_MST_ID JOIN ECRM_CA_VIEW_BUSINESS_UNIT BU WITH(NOLOCK) "
+			+ " ON IQ.BUSINESS_UNIT_ID = BU.BUSINESS_UNIT_ID JOIN COMPANY_USER_MAPPING CM WITH(NOLOCK) ON BU.BUSINESS_UNIT_ID = CM.BUSINESS_UNIT_ID JOIN "
+			+ " ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON DM.MODULE_NAME = CD.CODE_ID WHERE CM.COMPANY_ID LIKE CASE  WHEN ?='0' THEN '%' ELSE ? END "
+			+ " AND IQ.BUSINESS_UNIT_ID LIKE CASE WHEN ?= '0' THEN '%' ELSE ? END  AND CD.CODE_ABRV LIKE CASE WHEN ?= 'ALL' THEN '%' ELSE ? END "
+			+ " AND IQ.RECEIVED_DATE >= DBO.FN_FORMAT_DATE(?,115) AND  (IQ.RECEIVED_DATE <= DBO.FN_FORMAT_DATE(?,115) + ' 23:59:59.999')"
+			+ " AND IQ.ASSIGNED_TO_USER_ID LIKE ?";
+
+	public static final String GET_DAILY_INVOICE_PROCESSING_DETAIL = "SELECT COUNT(1) FROM ECRM_CA_STAGING_INV_HEADER SI WITH(NOLOCK) JOIN ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK) "
+			+ " ON SI.FILE_ID = IQ.FILE_ID JOIN DOCUMENT_MST DM WITH(NOLOCK) ON IQ.DOC_TYPE = DM.DOC_MST_ID JOIN "
+			+ " ECRM_CA_VIEW_BUSINESS_UNIT BU WITH(NOLOCK) ON IQ.BUSINESS_UNIT_ID = BU.BUSINESS_UNIT_ID JOIN "
+			+ " ECRM_CA_VIEW_COMPANY_PROFILE CP WITH(NOLOCK) ON BU.COMPANYID = CP.COMPANYID WHERE CP.COMPANYID LIKE CASE  WHEN ?='0' THEN '%' ELSE ? END "
+			+ " AND BU.BUSINESS_UNIT_ID LIKE CASE WHEN ?= '0' THEN '%' ELSE ? END AND  SI.MODIFIED_DATE >=  DBO.FN_FORMAT_DATE(?,115) "
+			+ " AND (SI.MODIFIED_DATE <=  DBO.FN_FORMAT_DATE(?,115) + ' 23:59:59.999')"
+			+ " AND DM.DEST_QUEUE_TYPE = 266 AND SI.STATE_CODE = 231 AND IQ.ASSIGNED_TO_USER_ID LIKE ?";
+
+	public static final String GET_DAILY_DEBIT_CREDIT_NOTE_PROCESSING_DETAIL = "SELECT COUNT(1) FROM ECRM_CA_STAGING_INV_HEADER SI WITH(NOLOCK) JOIN ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK) "
+			+ " ON SI.FILE_ID = IQ.FILE_ID JOIN DOCUMENT_MST DM WITH(NOLOCK) ON IQ.DOC_TYPE = DM.DOC_MST_ID JOIN "
+			+ " ECRM_CA_VIEW_BUSINESS_UNIT BU WITH(NOLOCK) ON IQ.BUSINESS_UNIT_ID = BU.BUSINESS_UNIT_ID JOIN "
+			+ " ECRM_CA_VIEW_COMPANY_PROFILE CP WITH(NOLOCK) ON BU.COMPANYID = CP.COMPANYID WHERE CP.COMPANYID LIKE CASE  WHEN ?='0' THEN '%' ELSE ? END "
+			+ " AND BU.BUSINESS_UNIT_ID LIKE CASE WHEN ?= '0' THEN '%' ELSE ? END AND  SI.MODIFIED_DATE >= DBO.FN_FORMAT_DATE(?,115) "
+			+ " AND (SI.MODIFIED_DATE <= DBO.FN_FORMAT_DATE(?,115) + ' 23:59:59.999')"
+			+ " AND DM.DEST_QUEUE_TYPE = 270 AND SI.STATE_CODE = 231 AND IQ.ASSIGNED_TO_USER_ID LIKE ?";
+
+	public static final String GET_MANUAL_BY_ROLEID = "select MM.User_manual,MM.user_manual_location from ECRM_CA_USER_MANUAL_MST MM "
+			+ " join ECRM_CA_User_Manual_Role_Mapping RM " + " on MM.ID=RM.user_manual_id"
+			+ " where srole_id=?  ORDER BY MM.ORDER_NO ASC";
+
+	public static final String GET_LAST_ECRM_CA_OCR_ENGINE_RESTART_TIME_FROM_NOW = "IF EXISTS(SELECT 1 FROM ECRM_CA_OCR_ENGINE_RESTART_LOG) "
+			+ "BEGIN "
+			+ "SELECT DATEDIFF(MINUTE,ACTION_DATE,GETDATE()) FROM ECRM_CA_OCR_ENGINE_RESTART_LOG ORDER BY 1 DESC "
+			+ "END " + "ELSE " + "BEGIN " + "SELECT 31 " + "END";
+
+	public static final String INSERT_ECRM_CA_OCR_ENGINE_RESTART_LOG = "INSERT INTO ECRM_CA_OCR_ENGINE_RESTART_LOG(USERID, IP_ADDRESS, ACTION_DATE) values(?, ?, GETDATE())";
+
+	public static final String GET_ALL_DOC_TYPE = "SELECT DISTINCT AV.DOC_MST_ID AS DOC_MST_ID, CD.CODE_ABRV+'-'+ DM.DOC_TITLE AS DOC_TITLE "
+			+ " FROM APPLICATION_VALIDITY AV JOIN DOCUMENT_MST DM ON AV.DOC_MST_ID=DM.DOC_MST_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD ON DM.MODULE_NAME=CD.CODE_ID ";
+
+	public static final String GET_WF_STATUS_AND_QUEUE_STATUS = "SELECT WF_STATUS, INVOICE_ASSIGNEMENT_QUEUE_STATUS FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID = ?";
+
+	public static final String GET_OUT_OF_OFFICE = "SELECT DELEGATE_TO_USER_INFO_ID,OOO_FROM_DT,OOO_TILL_DT  FROM OUT_OF_OFFICE OOO (NOLOCK) WHERE OOO.DELEGATE_FROM_USER_INFO_ID=? AND  GETDATE()>OOO.OOO_FROM_DT and  GETDATE()<=OOO.OOO_TILL_DT+1 AND STATUS_ID=10 AND SITE_ID=? and DOC_MST_ID=?";
+
+	public static final String GET_USER_FULL_NAME = "SELECT FIRST_NAME+' '+LAST_NAME as FULL_NAME FROM ECRM_CA_USER_PROFILE (nolock) WHERE USERIDNUMBER=?";
+
+	public static final String GET_ROLE_MST = "SELECT ROLE_ID, ROLE_NAME FROM ECRM_CA_ROLES WITH(NOLOCK) WHERE DELETE_FLAG = 0 AND ROLE_NAME NOT IN('Admin','Agent') ORDER BY ROLE_NAME ";
+
+	public static final String GET_LANGUAGE_MST = "SELECT LANG_ID, LANG_NAME FROM LANGUAGE_MST WHERE STATUS_ID = 10";
+
+	public static final String INSERT_INTO_ERROR_LOG = "Insert into Err_Log values(?, ?, ?, ?)";
+
+	public static final String GET_LINKED_SERVER_CONNECTION_NAME = "SELECT DISTINCT ISNULL(EC.GATEWAY_SERVER_ID,EC.CONNECTION_NAME) CONNECTION_NAME,  "
+			+ " SAP_CLIENT, EC.CONNECTION_ID, BU.UNIT_NOTES FROM ECRM_CA_ERP_CONNECTIONS EC "
+			+ " JOIN ECRM_CA_VIEW_BUSINESS_UNIT BU ON BU.CONNECTION_ID=EC.CONNECTION_ID"
+			+ " JOIN ECRM_CA_VIEW_COMPANY_PROFILE CP ON BU.COMPANYID=CP.COMPANYID WHERE BU.BUSINESS_UNIT_ID = ?";
+
+	public static final String getErpUnitMstDetailSql(String unitCodeId) {
+		return "SELECT  * from openquery(LS_MIND_Empro_Biz_Multiunit, "
+				+ " 'select * from Gen_UnitMaster where Unt_CodeId = ''" + unitCodeId + "''' )";
+	}
+
+	public static final String getErpPvDetailSQL(String erpPv) {
+		return "SELECT  * from openquery(LS_MIND_Empro_Biz_Multiunit, "
+				+ " 'SELECT  ap_docMaster.apDocM_voDate, ap_docMaster.apDocM_venPrDocNo, ap_docMaster.apDocM_venPrDocDate, ap_docMaster.apDocM_venDocValue, "
+				+ " Gen_UnitMaster.Unt_CodeID, Gen_PartyMaster.Prty_PartyID, Gen_PartyMaster.Prty_Name, Gen_UnitMaster.Unt_Address1, ap_docDtl.apDocD_remarks,  "
+				+ " ap_docDtl.apDocD_DrCr, ap_docMaster.apDocM_voNo, fin_glMaster.glM_desc, ap_docMaster.apDocM_refMemoNo, ap_docMaster.apDocM_ctrlGLAc,  "
+				+ " ap_docMaster.apDocM_baseCurAmt, ap_docMaster.apDocM_currency, ap_docMaster.apDocM_xchgRate, ap_docMaster.apDocM_cancelRem,  "
+				+ " ap_docMaster.apDocM_cancel, ap_docDtl.apDocD_basCurVal, sec_usermaster.Usr_UserName, ap_docDtl.apDocD_prjCode, ap_docDtl.apDocD_voNo,  "
+				+ " ap_docDtl.apDocD_voType, Gen_UnitMaster.Unt_Email, Gen_UnitMaster.Unt_WebSite, ap_docMaster.apDocM_ctrlSLAc, fin_slMaster.slM_desc,  "
+				+ " '''' [Description], ap_docMaster.apDocM_pvType, ap_docMaster.apDocM_remarks, ap_docDtl.apDocD_ccCode,  "
+				+ " ap_docDtl.apDocD_glCode, ap_docDtl.apDocD_slCode, fin_projectMaster.prjM_desc, ap_docDtl.apDocD_empCode,  "
+				+ " fin_empMaster.empM_name, ap_docMaster.apDocM_ccCode, ap_docMaster.apDocM_prjCode, fin_glMaster_Desc.glM_desc AS Expr2, ap_docMaster.apDocM_Amt,  "
+				+ " Gen_UnitMaster.Unt_Address2, Gen_UnitMaster.Unt_Address3 "
+				+ " FROM ap_docMaster AS ap_docMaster WITH(NOLOCK) LEFT OUTER JOIN "
+				+ " ap_docDtl AS ap_docDtl WITH(NOLOCK) ON ap_docMaster.apDocM_voNo = ap_docDtl.apDocD_voNo LEFT OUTER JOIN "
+				+ " fin_slMaster AS fin_slMaster WITH(NOLOCK) ON ap_docMaster.apDocM_ctrlSLAc = fin_slMaster.slM_slCode LEFT OUTER JOIN "
+				+ " fin_glMaster AS fin_glMaster WITH(NOLOCK) ON ap_docMaster.apDocM_ctrlGLAc = fin_glMaster.glM_glCode LEFT OUTER JOIN "
+				+ " Gen_PartyMaster AS Gen_PartyMaster WITH(NOLOCK) ON ap_docMaster.apDocM_vendorCode = Gen_PartyMaster.Prty_PartyID LEFT OUTER JOIN "
+				+ " Gen_UnitMaster AS Gen_UnitMaster WITH(NOLOCK) ON ap_docMaster.apDocM_unit = Gen_UnitMaster.Unt_CodeID LEFT OUTER JOIN "
+				+ " sec_usermaster AS sec_usermaster WITH(NOLOCK) ON ap_docMaster.createdBy = sec_usermaster.Usr_UserID LEFT OUTER JOIN "
+				+ " fin_glMaster AS fin_glMaster_Desc ON ap_docDtl.apDocD_glCode = fin_glMaster_Desc.glM_glCode LEFT OUTER JOIN "
+				+ " fin_projectMaster AS fin_projectMaster WITH(NOLOCK) ON ap_docDtl.apDocD_prjCode = fin_projectMaster.prjM_prjCode LEFT OUTER JOIN "
+				+ " fin_empMaster AS fin_empMaster WITH(NOLOCK) ON ap_docDtl.apDocD_empCode = fin_empMaster.empM_empCode "
+				+ " where ap_docMaster.apDocM_voNo like ''" + erpPv + "''"
+				+ " ORDER BY Gen_UnitMaster.Unt_CodeID, ap_docMaster.apDocM_voNo ')";
+	}
+
+	public static final String getErpPvTaxDetailSQL(String erpPv) {
+		return "SELECT  * from openquery(LS_MIND_Empro_Biz_Multiunit, "
+				+ " 'SELECT ap_docTaxDtl.aptax_taxRate, ap_docTaxDtl.aptax_taxValue, Gen_TaxRate.TxRt_RateDesc, ap_docTaxDtl.aptax_voType, ap_docTaxDtl.aptax_voNo "
+				+ " FROM ap_docTaxDtl AS ap_docTaxDtl WITH(NOLOCK) INNER JOIN "
+				+ " Gen_TaxRate AS Gen_TaxRate WITH(NOLOCK) ON ap_docTaxDtl.aptax_taxRate = Gen_TaxRate.TxRt_Rate_No "
+				+ " WHERE (ap_docTaxDtl.aptax_voType = ''MP'') AND (ap_docTaxDtl.aptax_voNo = ''" + erpPv + "''"
+				+ ") ORDER BY ap_docTaxDtl.aptax_taxRate ')";
+	}
+
+// Insert user record details in mail box table so that mail can be sent
+	public static final String INSERT_MAIL_ENTRY = "INSERT INTO MAIL_BOX (MAIL_TO,MAIL_FROM,MAIL_SUBJECT,MAIL_BODY,ERROR_SUCCESS,MAIL_CREATED_DATE,MAIL_CREATER,SOURCE_PAGE,MAIL_CC)"
+			+ "VALUES(?,?,?,?,?,GETDATE(),?,?,?)";
+
+	/** The Constant GET_CONFIG_VALUE_BY_CONFIG_KEY. */
+	public static final String GET_CONFIG_VALUE_BY_CONFIG_KEY = "SELECT Config_Value FROM ECRM_CA_SYS_CONFIG WHERE Config_Key = ? ";
+
+	public static final String getUsersInfoByIds(String userIds) {
+		return "SELECT FIRST_NAME, LAST_NAME, EMAIL, LOGIN_ID, PASSWORD, USER_INFO_ID FROM USER_INFO_MST where USER_INFO_ID IN ("
+				+ userIds + ") AND ISNULL(IS_WELCOME_MAILED, '0') != 1";
+	}
+
+// Update is welcome mail send
+	public static final String UPDATE_IS_WELCOME_MAIL_SEND = "UPDATE USER_INFO_MST SET IS_WELCOME_MAILED = 1 WHERE USER_INFO_ID = ? ";
+
+// GET File Id by file name
+	public static final String GET_FILE_NAME_BY_FILE_ID = "SELECT COALESCE( ( " + " SELECT DISTINCT FILE_ID "
+			+ " FROM ECRM_CA_INVOICE_QUEUE IQ WITH(NOLOCK)  "
+			+ " JOIN COMPANY_USER_MAPPING CM WITH(NOLOCK) ON IQ.BUSINESS_UNIT_ID = CM.BUSINESS_UNIT_ID  "
+			+ " AND IQ.ASSIGNED_TO_USER_ID IS NULL OR IQ.ASSIGNED_TO_USER_ID LIKE ?  "
+			+ " WHERE   CM.USERID LIKE ? AND  FILE_NAME = ? "
+			+ " ), '999999999999') AS FILE_ID, ISNULL((SELECT 1 FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_NAME = ?),0) AS FILE_EXISTS";
+
+	/** The insert into ECRM_CA_NOTIFICATION_QUEUE table Script. */
+	public static final String INSERT_INTO_ECRM_CA_NOTIFICATION_QUEUE = "INSERT INTO ECRM_CA_NOTIFICATION_QUEUE (File_Id, Notification_Type, Remarks,Ent_By,Ent_Stamp) VALUES(?,?,?,?, GETDATE())";
+
+	public static final String DOC_TYPE_LIST_TO_MAP_GL_COST_CENTER_WITH_SELECTED = "SELECT AV.DOC_MST_ID AS DOC_MST_ID, CD.CODE_ABRV+'-'+ DM.DOC_TITLE AS DOC_TITLE, "
+			+ " CASE WHEN TAB.DOC_TYPE IS NULL THEN '0' ELSE '1' END AS 'STATUS'   "
+			+ " FROM APPLICATION_VALIDITY AV WITH (NOLOCK) "
+			+ "  JOIN DOCUMENT_MST DM WITH (NOLOCK) ON AV.DOC_MST_ID=DM.DOC_MST_ID "
+			+ "  JOIN ECRM_CA_CODES_DETAILS CD WITH (NOLOCK) ON DM.MODULE_NAME=CD.CODE_ID " + "  LEFT OUTER JOIN "
+			+ " ( " + "  SELECT GLS.BU_ID, GLDM.DOC_TYPE FROM ECRM_CA_ERP_GL_SETTINGS GLS WITH (NOLOCK) "
+			+ "  JOIN ECRM_CA_GL_COST_CENTER_DOC_TYPE_MAP GLDM WITH (NOLOCK) ON GLS.ID=GLDM.GL_COST_ID  AND GL_COST_ID = ? "
+			+ "  ) AS TAB ON TAB.DOC_TYPE=AV.DOC_MST_ID AND TAB.BU_ID=AV.SITE_ID "
+			+ "  WHERE  AV.STATUS_ID = 10 AND AV.SITE_ID=?  ORDER BY DOC_TITLE";
+
+	public static final String GET_USER_EMAIL_BY_USER_COMPANY_MAPPING = "SELECT DISTINCT USERIDNUMBER, EMAIL, FIRST_NAME+' '+LAST_NAME AS USER_NAME "
+			+ " FROM ECRM_CA_USER_PROFILE UP WITH(NOLOCK) JOIN COMPANY_USER_MAPPING CU WITH(NOLOCK) "
+			+ " ON UP.USERIDNUMBER=CU.USERID "
+			+ " WHERE ACTIVE =1 AND USERIDNUMBER !=1 AND BUSINESS_UNIT_ID = ? AND EMAIL LIKE ?";
+
+	public static final String GET_VENDOR_LIST_BY_BU_ID_DOC_ID = "SELECT VM.VENDOR_ID, VENDOR_NAME+' ~ '+VENDOR_CODE AS 'VENDOR', VENDOR_CODE "
+			+ " FROM ECRM_CA_VENDOR_MST VM WITH(NOLOCK) "
+			+ " WHERE VM.BU_ID = ? AND VENDOR_NAME+' ~ '+VENDOR_CODE  LIKE ?";
+
+	public static final String GET_VENDOR_LIST_BY_VENDOR_LIKE_SEARCH = "SELECT VM.VENDOR_ID, '('+UNIT_NAME+') '+VENDOR_NAME+' ~ '+VENDOR_CODE AS 'VENDOR', VENDOR_CODE "
+			+ " FROM ECRM_CA_VENDOR_MST VM WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK) ON BU.BUSINESS_UNIT_ID = VM.BU_ID AND MHC_ENTITY_ID LIKE ? AND BU.STATUS = 1"
+			+ " WHERE VENDOR_NAME+' ~ '+VENDOR_CODE  LIKE ?";
+
+	public static final String IS_RECEIVER_ENABLE_ON_BU_DOC_TYPE = "SELECT ISNULL(IS_RECEIVER_ENABLE, '0') AS IS_RECEIVER_ENABLE FROM APPLICATION_VALIDITY WITH (NOLOCK) WHERE SITE_ID = ? AND DOC_MST_ID = ? ";
+
+	public static final String GET_RECEIVER_EMAIL_ID = "SELECT BPO_RECEIVER FROM( SELECT BPO_RECEIVER FROM ECRM_CA_ERP_GL_SETTINGS WITH (NOLOCK) "
+			+ " WHERE ISNULL(BPO_RECEIVER, '' ) <> '' " + " UNION "
+			+ " SELECT EMAIL AS BPO_RECEIVER FROM ECRM_CA_USER_PROFILE WITH (NOLOCK) WHERE ACTIVE = 1 AND ISNULL(EMAIL, '' ) <> '' "
+			+ " ) TAB WHERE BPO_RECEIVER LIKE ? ORDER BY BPO_RECEIVER";
+
+	public static final String UPDATE_RECEIVER_EMAIL_ID_IN_INVOICE_QUEUE = "Update ECRM_CA_INVOICE_QUEUE set RECEIVER_EMAIL = ?, Last_Action_By = ?, Last_Action_Date= GETDATE() where FILE_ID = ?";
+
+	/** The Constant GET_NOT_MOVED_FILE_COUNT_STAGE_TO_RECEIVE. */
+	public static final String GET_FILES_STATUS_ON_STAGE_TO_RECEIVE_MOVE = "SELECT IQ.FILE_ID,IQ.FILE_NAME,CD_QS.CODE_ABRV AS INVOICE_ASSIGNEMENT_QUEUE_STATUS,"
+			+ " CD_WS.CODE_ABRV AS WF_STATUS, UP.USERID, SIH.ERROR_DESCRIPTION, IQ.STAGE_ERR  FROM ECRM_CA_INVOICE_QUEUE IQ WITH (NOLOCK) "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD_QS WITH (NOLOCK)  ON CD_QS.CODE_ID=IQ.INVOICE_ASSIGNEMENT_QUEUE_STATUS "
+			+ " LEFT JOIN ECRM_CA_CODES_DETAILS CD_WS WITH (NOLOCK)  ON CD_WS.CODE_ID=IQ.WF_STATUS "
+			+ " LEFT OUTER JOIN ECRM_CA_STAGING_INV_HEADER SIH  WITH (NOLOCK)  ON SIH.FILE_ID=IQ.FILE_ID "
+			+ " LEFT JOIN ECRM_CA_USER_PROFILE UP ON IQ.ASSIGNED_TO_USER_ID = UP.USERIDNUMBER WHERE IQ.FILE_ID IN (?";
+
+	public static final String GET_BUSINESS_UNIT_ID = "select Business_Unit_ID from ECRM_CA_INVOICE_QUEUE WITH(NOLOCK)  where file_id=?";
+
+	public static final String UPDATE_INVOIVE_QUEUE_FILE_TO_UNASSIGNED = "UPDATE ECRM_CA_INVOICE_QUEUE SET Assigned_To_User_Name=NULL,ASSIGNED_TO_USER_ID=0,ASSIGNED_BY_USER_ID=0,ASSIGNED_BY_USER_NAME=NULL WHERE FILE_ID=?";
+
+// Update is welcome mail send
+	public static final String GET_USER_EMAIL = "SELECT EMAIL,USERID FROM ECRM_CA_USER_PROFILE with(nolock) WHERE USERIDNUMBER=?";
+
+	public static final String GET_REMINDER_DETAILS = "SELECT Reminder_Enable,REMINDER_MAIL_TO,REMINDER_DATE,REMINDER_REMARKS FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID=?";
+
+	public static final String UPDATE_REMINDER_DETAILS = "UPDATE ECRM_CA_INVOICE_QUEUE SET REMINDER_ENABLE=?,REMINDER_MAIL_TO=?,REMINDER_DATE=?,REMINDER_REMARKS=? WHERE FILE_ID=?";
+
+	public static final String DISABLE_REMINDER_DETAILS = "UPDATE ECRM_CA_INVOICE_QUEUE SET REMINDER_ENABLE=?,REMINDER_MAIL_TO=?,REMINDER_DATE=?,REMINDER_REMARKS=? WHERE FILE_ID=?";
+
+	public static final String ECRM_CA_INVOICE_QUEUE_AUDIT_ENTRY = "INSERT INTO ECRM_CA_INVOICE_QUEUE_AUDIT(File_ID,Invoice_Assignement_Queue_Status,WF_Status,Invoice_Doc_ID,Assigned_By_User_Name,Assigned_By_User_ID,Assigned_To_User_Name,Assigned_To_User_ID,Assigned_Date,Remark,Doc_Type,Last_Action_Date,Last_Action_By,Staging_Date,Query_Post_Flag,Parent_File_ID,Vendor_Name,Supp_Document_Name,Is_Rec_Frozen,Delegate_To,Delegation_Stamp,Delegated_By,Trans_Reason_ID,Is_Error_To_Received_Moved,Item_Priority,Is_Follow_Up_Occured,Due_Date,Discounted_Date,Is_Return_To_OPCO,Return_To_OPCO_Status,Return_Date,Return_By,ERP_Grin_Amount,Vendor_Cordinator,EMPRO_SCAN_DTL_ID,FILE_SIZE,PHYSICAL_PATH,AGING,Aging_Finalized,RECEIVER_EMAIL,Reminder_Enable,Reminder_Mail_To,Reminder_Date,Reminder_Remarks)"
+			+ " SELECT File_ID,Invoice_Assignement_Queue_Status,WF_Status,Invoice_Doc_ID,Assigned_By_User_Name,Assigned_By_User_ID,Assigned_To_User_Name,Assigned_To_User_ID,Assigned_Date,Remark,Doc_Type,Last_Action_Date,Last_Action_By,Staging_Date,Query_Post_Flag,Parent_File_ID,Vendor_Name,Supp_Document_Name,Is_Rec_Frozen,Delegate_To,Delegation_Stamp,Delegated_By,Trans_Reason_ID,Is_Error_To_Received_Moved,Item_Priority,Is_Follow_Up_Occured,Due_Date,Discounted_Date,Is_Return_To_OPCO,Return_To_OPCO_Status,Return_Date,Return_By,ERP_Grin_Amount,Vendor_Cordinator,EMPRO_SCAN_DTL_ID,FILE_SIZE,PHYSICAL_PATH,AGING,Aging_Finalized,RECEIVER_EMAIL,Reminder_Enable,Reminder_Mail_To,Reminder_Date,Reminder_Remarks "
+			+ " FROM ECRM_CA_INVOICE_QUEUE with(nolock) where file_id=?";
+
+	/** The bu list by company id */
+	public static final String BU_LIST_BY_COMPANY_ID = "SELECT BU.BUSINESS_UNIT_ID, BU.UNIT_NAME FROM ECRM_CA_COMPANY_PROFILE CM WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK) ON CM.COMPANYID = BU.COMPANYID "
+			+ " WHERE CM.DELETE_FLAG = 0 AND CM.STATUS = 1 AND BU.STATUS = 1  AND BU.DELETE_FLAG = 0 AND CM.COMPANYID = ? ORDER BY UNIT_NAME ";
+	public static final String GET_USER_LIST = "SELECT USERID FROM ECRM_CA_USER_PROFILE WITH (NOLOCK) WHERE ACTIVE = 1 and USERID LIKE ? ORDER BY USERID";
+
+	public static final String GET_SORT_BY_COLUMN_LIST_FOR_ORDER = "SELECT DB_TABLE_COLUMN_NAME, RF.DESCRIPTION FROM ECRM_CA_USER_DISP_COLUMN_MST UDCM WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_RESOURCE_FILE RF WITH(NOLOCK) ON UDCM.RESOURCE_ID = RF.RESOURCE_ID";
+
+	public static final String GET_USER_DISP_COLUMN_MST = "SELECT UDCM.ID,RF.DESCRIPTION, USER_ID FROM ECRM_CA_USER_DISP_COLUMN_MST UDCM WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_RESOURCE_FILE RF WITH(NOLOCK) ON UDCM.RESOURCE_ID = RF.RESOURCE_ID LEFT JOIN ECRM_CA_USER_COLUMN_SETTING UCS WITH(NOLOCK) "
+			+ " ON UDCM.ID = UCS.COLUMN_ID AND USER_ID = ? ORDER BY UCS.Sort_Order ASC ";
+
+	public static final String SAVE_COLUMN_SETTING_FOR_ALL_COLUMNS = "INSERT INTO ECRM_CA_USER_COLUMN_SETTING SELECT ?,ID,?,GETDATE(),SORT_ORDER FROM ECRM_CA_USER_DISP_COLUMN_MST ";
+
+	public static final String CHECK_IF_SETTING_EXIST_FOR_USER = "SELECT COUNT(UCS.ID) AS RECORD_COUNT FROM ECRM_CA_USER_DISP_COLUMN_MST UDCM WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_USER_COLUMN_SETTING UCS WITH(NOLOCK) ON UDCM.ID = UCS.COLUMN_ID WHERE USER_ID = ? ";
+
+	public static final String SAVE_USER_COLUMN_SETTING = "INSERT INTO ECRM_CA_USER_COLUMN_SETTING VALUES(?,?,?,GETDATE(),?)";
+
+	public static final String DELETE_USER_COLUMN_SETTING = "DELETE UCS OUTPUT DELETED.ID, DELETED.USER_ID, DELETED.COLUMN_ID, DELETED.ENT_BY, DELETED.ENT_STAMP, "
+			+ " ?, GETDATE(),DELETED.SORT_ORDER INTO ECRM_CA_USER_COLUMN_SETTING_AUDIT(ID, USER_ID, COLUMN_ID, ENT_BY, ENT_STAMP, DEL_BY, DEL_STAMP, SORT_ORDER) "
+			+ " FROM ECRM_CA_USER_COLUMN_SETTING UCS WHERE  USER_ID = ?";
+
+	public static final String GET_USER_DISP_COLUMN_MST_FOR_EXCEL = "SELECT UDCM.ID,RF.DESCRIPTION, DB_Table_Column_Name, DB_Table_Formated_Column_Name "
+			+ " FROM ECRM_CA_USER_DISP_COLUMN_MST UDCM WITH(NOLOCK) JOIN ECRM_CA_RESOURCE_FILE RF WITH(NOLOCK) ON UDCM.RESOURCE_ID = RF.RESOURCE_ID "
+			+ " JOIN ECRM_CA_USER_COLUMN_SETTING UCS WITH(NOLOCK) ON UDCM.ID = UCS.COLUMN_ID AND USER_ID = ? ORDER BY UCS.Sort_Order ASC ";
+
+	public static final String SQL_QUERY_TO_GET_LIST_OF_COUNTRIES = "select COUNTRY_NAME , COUNTRY_ID from COUNTRY_MST  WITH(nolock) where status_id='10' order by COUNTRY_NAME";
+	public static final String SQL_QUERY_TO_GET_LIST_OF_DIVISIONS = "select DIVISION_NAME , DIVISION_ID from DIVISION_MST  WITH(nolock) where status_id='10' order by DIVISION_NAME ";
+	public static final String SQL_QUERY_TO_GET_LIST_OF_COMPANIES = "select COMPANY_NAME, COMPANY_ID from COMPANY_MST  WITH(nolock) where status_id='10' order by COMPANY_NAME";
+	public static final String SQL_QUERY_TO_GET_LIST_OF_ACTIVE_COMPANIES = "select COMPANY_ID, COMPANY_NAME from COMPANY_MST WITH(nolock) where STATUS_ID=10 ";
+
+	public static final String SQL_QUERY_TO_GET_LIST_OF_CURRENCY = "select CODE_ABRV, CODE_ID from ECRM_CA_CODES_DETAILS  WITH(nolock) where code_type_id=116";
+	public static final String SELECT_POTENTIAL_DUPLICATE_FLAG_STATUS = "SELECT FILE_ID FROM ECRM_CA_POTENTIAL_DUPLICATE_ITEM WHERE BATCH_ID IN(?)";
+	public static final String SQL_QUERY_TO_GET_LIST_OF_BUSINESS_UNIT = "SELECT UNIT_NAME, BUSINESS_UNIT_ID FROM ECRM_CA_BUSINESS_UNIT  WITH(nolock) WHERE STATUS='1' order by UNIT_NAME";
+	public static final String SQL_QUERY_TO_GET_LIST_OF_ITEM_DISTRIBUTION = "select CODE_ABRV, CODE_ID from ECRM_CA_CODES_DETAILS WITH(nolock) where CODE_TYPE_ID ='86' ";
+	public static final String SQL_QUERY_TO_GET_LIST_OF_CONNECTIONS = "SELECT CONNECTION_ID, CONNECTION_NAME  FROM ECRM_CA_ERP_CONNECTIONS WITH(nolock)";
+
+	public static final String GET_CYCLE_TIME_COLUMN_MST = "SELECT CT.ID,RF.DESCRIPTION, DB_Table_Column_Name, DB_Table_Formated_Column_Name "
+			+ " FROM ECRM_CA_CYCLE_TIME_COLUMN_MST CT WITH(NOLOCK) JOIN ECRM_CA_RESOURCE_FILE RF WITH(NOLOCK) ON CT.RESOURCE_ID = RF.RESOURCE_ID "
+			+ " ORDER BY CT.Sort_Order ASC ";
+
+	public static final String SQL_QUERY_TO_GET_REASON_LIST = "SELECT rm.Reason_ID as reasonId,rm.Reason_Code as reasonCode  FROM ECRM_CA_REASON_MST RM with(nolock) "
+			+ " JOIN ECRM_CA_COMPANY_PROFILE CP with(nolock) ON CP.COMPANYID = RM.COMPANY_ID  JOIN ECRM_CA_BUSINESS_UNIT BU with(nolock) ON BU.COMPANYID = CP.COMPANYID  "
+			+ " WHERE CATEGORY=49 AND RM.STATUS=1 AND BU.BUSINESS_UNIT_ID = ?";
+
+	/** The Constant GET_IMAGE_UPLOAD_LOG. */
+	public static final String GET_IMAGE_UPLOAD_LOG_ID_AND_FILE_NAME = "SELECT LOG.Image_Log_Id, ORIGINAL_FILE_NAME "
+			+ " FROM ECRM_CA_IMAGE_UPLOAD_LOG LOG WITH (NOLOCK)  WHERE BATCH_NO= ?";
+
+	public static final String UPDATE_UPLOAD_IMAGE_STATUS_ON_SPECIAL_CHARACTER_IN_FILE_NAME = "UPDATE ECRM_CA_IMAGE_UPLOAD_LOG SET Status =553, Operation_Type = 554 WHERE IMAGE_LOG_ID = ?";
+
+	public static final String GET_NEW_BUSINESS_UNIT_ID = "SELECT MAX(BUSINESS_UNIT_ID) BUSINESS_UNIT_ID FROM ECRM_CA_BUSINESS_UNIT WITH (NOLOCK) ";
+
+	public static final String GET_PHY_SCAN_LOCATION_LIST = "SELECT DISTINCT BU.BUSINESS_UNIT_ID AS BID,CP.COMPANY_NAME + ' - ' + BU.UNIT_NAME AS COMPUNIT "
+			+ " FROM ECRM_CA_VIEW_COMPANY_PROFILE CP "
+			+ " , ECRM_CA_VIEW_BUSINESS_UNIT BU, COMPANY_USER_MAPPING CUM WHERE CP.COMPANYID=BU.COMPANYID "
+			+ " AND CUM.BUSINESS_UNIT_ID=BU.BUSINESS_UNIT_ID AND IS_SCAN_LOCATION = 1 AND CUM.USERID= ? "
+			+ " ORDER BY COMPUNIT ";
+
+	public static final String GET_BUSINESS_IS_AUTO_ASSIGN = "SELECT IS_AUTO_ASSIGNMENT FROM ECRM_CA_BUSINESS_UNIT WHERE BUSINESS_UNIT_ID=?";
+
+	public static final String GET_ENTITY_NAME = "SELECT MHC_ENTITY_NAME FROM ECRM_CA_BUSINESS_UNIT WHERE BUSINESS_UNIT_ID = ? ";
+
+// Get Block count by Doc. Type
+	public static final String GET_BLOCK_COUNT = "SELECT COUNT(ID) FROM MHC_ACC_CODE_SYS_CONFIG MSC WITH(NOLOCK) WHERE DOC_CATEGORY = ? ";
+
+// Return Entry left those Block Ids already in parent screen
+	public static final String getAddAccountEntrySQL(String fileId, String codeIds, int isGstApp) {
+		String GET_ADD_ACCOUNT_ENTRY = "SELECT CD.CODE_ABRV AS BLOCK_NAME, TAB.* FROM ( "
+				+ " SELECT FILE_ID, AC.BLOCK_ID,  CD.SORT_ORDER, AC.DR_CR,    "
+				+ " CASE WHEN AC.AC_CODE='VNDAC???' THEN GD.T5#VENDOR_CODE ELSE AC.AC_CODE END ACCOUNT_CODE,  "
+				+ " AC.AC_NAME , '0' AS STATUS_ID, AC.ID "
+				+ " FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK)  "
+				+ " ON AC.TR_TYPE= GD.TRANSACTION_TYPE  "
+				+ " AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE END  "
+				+ " JOIN ECRM_CA_CODES_DETAILS CD   " + " ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=" + fileId
+				+ " GROUP BY AC.BLOCK_ID,AC.AC_NAME, AC.AC_CODE,GD.T5#VENDOR_CODE,AC.DR_CR,CD.SORT_ORDER, FILE_ID, AC.ID  "
+				+ " ) TAB "
+				+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON TAB.BLOCK_ID = CD.CODE_ID WHERE CODE_ID NOT IN("
+				+ codeIds + ") ";
+		if (isGstApp == 1) {
+			GET_ADD_ACCOUNT_ENTRY = GET_ADD_ACCOUNT_ENTRY + " AND  AC.IS_MEMO = 1 ";
+		}
+
+		GET_ADD_ACCOUNT_ENTRY = GET_ADD_ACCOUNT_ENTRY + " ORDER BY TAB.BLOCK_ID, TAB.SORT_ORDER, TAB.DR_CR DESC";
+		return GET_ADD_ACCOUNT_ENTRY;
+	}
+
+// Return Entry by Block Ids
+	public static final String getAddAccountEntryByBlockIdsSQL(String codeIds) {
+		return "SELECT CD.CODE_ABRV AS BLOCK_NAME, MSC.* FROM MHC_ACC_CODE_SYS_CONFIG MSC WITH(NOLOCK) "
+				+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON MSC.BLOCK_ID = CD.CODE_ID WHERE CODE_ID IN(" + codeIds
+				+ ") AND DOC_CATEGORY = ? ";
+	}
+
+// Generate non memo accounting entry
+	public static final String MHC_CREATE_ACCOUNTING_ENTRY_WITHOUT_GST = "SELECT AC.BLOCK_ID, AC.ID, CD.SORT_ORDER ,CASE WHEN AC.AC_CODE='VNDAC???'"
+			+ " THEN GD.AFS_1#VENDOR_NAME ELSE AC.AC_NAME END AC_NAME ,  CASE WHEN AC.AC_CODE='VNDAC???'"
+			+ " THEN GD.T5#VENDOR_CODE ELSE AC.AC_CODE END AC_CODE , SUM(CASE WHEN AC.POSITIVE=GD.DC  "
+			+ " THEN GD.AMOUNT ELSE GD.AMOUNT*-1 END) AMT, AC.DR_CR  FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK)"
+			+ " LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK) ON AC.TR_TYPE= GD.AFS_13 AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' "
+			+ " THEN GD.TAX_CODE ELSE AC.TX_CODE END  JOIN ECRM_CA_CODES_DETAILS CD ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=? "
+			+ " AND  BLOCK_ID NOT IN(581,583)  AND INPUT_CR_TYPE= CASE WHEN  INPUT_CR_TYPE ='NULL' THEN 'NULL' ELSE GD.AFS_17 END "
+			+ " GROUP BY AC.BLOCK_ID,AC.AC_NAME ,AC.AC_CODE,GD.T5#VENDOR_CODE,AC.DR_CR,CD.SORT_ORDER, AC.ID, GD.AFS_1#VENDOR_NAME  "
+			+ " UNION " + " SELECT AC.BLOCK_ID, AC.ID, CD.SORT_ORDER ,CASE WHEN AC.AC_CODE='VNDAC???' "
+			+ " THEN GD.AFS_1#VENDOR_NAME ELSE  AC.AC_NAME END AC_NAME , CASE WHEN AC.AC_CODE='VNDAC???' THEN GD.T5#VENDOR_CODE "
+			+ " ELSE AC.AC_CODE END AC_CODE ,SUM(CASE WHEN AC.POSITIVE=GD.DC  THEN GD.AMOUNT ELSE (CAST(GD.AMOUNT AS NUMERIC(18,2))*-1) END) AMT "
+			+ " ,AC.DR_CR FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT  JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK) ON AC.TR_TYPE= GD.AFS_13"
+			+ " AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE  END  "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=? AND  BLOCK_ID IN (581,583)  AND INPUT_CR_TYPE= GD.AFS_17  AND AC.DR_CR='C'"
+			+ " GROUP BY AC.BLOCK_ID,AC.AC_NAME , AC.AC_CODE,GD.T5#VENDOR_CODE,AC.DR_CR,CD.SORT_ORDER,AC.ID, GD.AFS_1#VENDOR_NAME"
+			+ " UNION  " + " SELECT AC.BLOCK_ID, AC.ID, CD.SORT_ORDER ,CASE WHEN AC.AC_CODE='VNDAC???' "
+			+ " THEN GD.AFS_1#VENDOR_NAME ELSE  AC.AC_NAME END AC_NAME , CASE WHEN AC.AC_CODE='VNDAC???'"
+			+ " THEN GD.T5#VENDOR_CODE ELSE AC.AC_CODE END AC_CODE , "
+			+ " SUM(CASE WHEN AC.POSITIVE=GD.DC  THEN  CASE WHEN GD.AFS_17='SelfConsumption' THEN GD.AMOUNT ELSE GD.AFS_22 END"
+			+ " ELSE (CAST(CASE WHEN GD.AFS_17='SelfConsumption' THEN GD.AMOUNT ELSE GD.AFS_22 END AS NUMERIC(18,2))*-1) END) AMT,"
+			+ " AC.DR_CR FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK) "
+			+ " ON AC.TR_TYPE= GD.AFS_13 AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE  "
+			+ " END  JOIN ECRM_CA_CODES_DETAILS CD ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=? AND INPUT_CR_TYPE= GD.AFS_17 AND AC.DR_CR='D'"
+			+ " AND  BLOCK_ID IN (581,583) GROUP BY AC.BLOCK_ID,AC.AC_NAME , AC.AC_CODE,GD.T5#VENDOR_CODE,AC.DR_CR,CD.SORT_ORDER,AC.ID, GD.AFS_1#VENDOR_NAME";
+// Generate non memo accounting entry
+	public static final String MHC_CREATE_ACCOUNTING_ENTRY = "Select AC.Block_ID, AC.ID, Cd.SORT_ORDER ,Case When AC.AC_CODE='VNDAC???' Then GD.AFS_1#VENDOR_NAME Else AC.AC_NAME End Account_Name, Case When AC.AC_CODE='VNDAC???' Then GD.T5#VENDOR_CODE Else AC.AC_CODE End Account_Code ,"
+			+ " Sum(Case WHen AC.Positive=GD.DC Then GD.Amount Else GD.Amount*-1 End) Amt, AC.Dr_Cr "
+			+ " FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) Left JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK)"
+			+ " ON AC.TR_TYPE= GD.TRANSACTION_TYPE  "
+			+ " And GD.Tax_Code=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE END"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK)  " + " ON AC.Block_ID=CD.CODE_ID and FILE_ID=? "
+			+ " WHERE AC.Is_Memo =0 "
+			+ " Group By AC.Block_ID,AC.AC_NAME ,AC.AC_CODE,GD.T5#VENDOR_CODE,GD.AFS_1#VENDOR_NAME ,AC.Dr_Cr,Cd.SORT_ORDER,AC.ID "
+			+ " Order by Cd.SORT_ORDER,AC.Dr_Cr Desc";
+// Generate memo accounting entry
+	public static final String MHC_CREATE_MEMO_ACCOUNTING_ENTRY = "SELECT AC.BLOCK_ID, AC.ID, CD.SORT_ORDER  ,GD.AFS_18_HSN_CODE,Case When AC.AC_CODE='VNDAC???' Then GD.AFS_1#VENDOR_NAME Else AC.AC_NAME End Account_Name, CASE WHEN AC.AC_CODE='VNDAC???' THEN GD.T5#VENDOR_CODE ELSE AC.AC_CODE END ACCOUNT_CODE ,"
+			+ " GD.AMOUNT AMT, AC.DR_CR,AC.IS_MEMO  FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK)"
+			+ " ON AC.TR_TYPE= GD.TRANSACTION_TYPE AND  GD.T1#LOCATION_CODE=AC.DOC_CATEGORY AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE END"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=? WHERE AC.IS_MEMO =1 AND DR_CR='D' Union SELECT AC.BLOCK_ID, AC.ID, CD.SORT_ORDER ,AC.AC_NAME ,'' As AFS_18_HSN_CODE,Case When AC.AC_CODE='VNDAC???' Then GD.AFS_1#VENDOR_NAME Else AC.AC_NAME End Account_Name , CASE WHEN AC.AC_CODE='VNDAC???' THEN GD.T5#VENDOR_CODE ELSE AC.AC_CODE END ACCOUNT_CODE ,"
+			+ " SUM(CASE WHEN AC.POSITIVE=GD.DC THEN GD.AMOUNT ELSE GD.AMOUNT*-1 END) AMT, AC.DR_CR,'' as Is_Memo_Entry   "
+			+ " FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK)"
+			+ " ON AC.TR_TYPE= GD.TRANSACTION_TYPE  AND  GD.T1#LOCATION_CODE=AC.DOC_CATEGORY AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE END"
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=? WHERE AC.IS_MEMO =1 And DR_CR='C'"
+			+ " GROUP BY AC.BLOCK_ID,AC.AC_NAME ,AC.AC_CODE,GD.T5#VENDOR_CODE,GD.AFS_1#VENDOR_NAME ,AC.DR_CR,CD.SORT_ORDER,AC.DR_CR ORDER BY CD.SORT_ORDER,AC.DR_CR DESC";
+
+// Insert accounting entry
+	public static final String MHC_INSERT_ACCOUNTING_ENTRY = "INSERT INTO MHC_ACCOUNT_POSTING_ENTRY (FILE_ID,BLOCK_ID,BLOCK_ITEM_ID,DR_CR_TYPE,AMOUNT,GL_CODE,DESCRIPTION,STATUS_ID,Version_No,Hsn_Sac_Code,Is_Memo_Entry) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+
+// check for duplicate accounting entry
+	public static final String MHC_CHECK_DUPLICATE_ACCOUNTING_ENTRY = "SELECT COUNT(FILE_ID) as cnt FROM MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK) WHERE FILE_ID=?";
+
+// Get accounting entry
+	public static final String MHC_GET_ACCOUNTING_ENTRY = "SELECT * FROM MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK) WHERE FILE_ID=? order by Block_Id,ID asc ";
+
+// Delete accounting entry block
+	public static final String DELETE_ACCOUNTING_ENTRY_BLOCK = "DELETE FROM  MHC_ACCOUNT_POSTING_ENTRY WHERE BLOCK_ID=? AND FILE_ID=?";
+// Delete accounting entry items
+	public static final String DELETE_ACCOUNTING_ENTRY_BLOCK_ITEM = "DELETE FROM  MHC_ACCOUNT_POSTING_ENTRY WHERE BLOCK_ID=? AND FILE_ID=? AND ID=?";
+
+// Update accounting entry
+	public static final String UPDATE_ACCOUNTING_ENTRY_DATA = " UPDATE MHC_ACCOUNT_POSTING_ENTRY SET AMOUNT=?,GL_CODE=? ,DESCRIPTION=?,VERSION_NO=?,HSN_SAC_CODE=? WHERE FILE_ID=? AND ID=?";
+
+// Update invoice queue
+	public static final String UPDATE_OCR_INVOICE_QUEUE_REMARKS = "UPDATE ECRM_CA_INVOICE_QUEUE SET REMARK=?,PostingPrd=?  WHERE  FILE_ID=?";
+
+// Update invoice header
+	public static final String UPDATE_INVOICE_HEADER = "INSERT INTO ECRM_CA_STAGING_INV_HEADER (INV_DOC_ID,SCAN_DATE,COMPANY_CODE,STATUS_CODE,STATE_CODE,"
+			+ " IMAGE_NAME,MODIFIED_BY,MODIFIED_DATE,BUSINESS_UNIT_ID,ASSIGNED_TO,ASSIGNEE,[FILE_ID],CR_USER_ID,INV_TRANSACTION,"
+			+ " COCKPIT_DOC_TYPE,VENDOR_INV_REFERENCE,GROSS_AMOUNT,VAT_VALUE,VATCODE,POSTING_DATE,CREATED_BY,CREATED_DATE,TEMPLATE_ID,"
+			+ " REMARKS,DOC_TYPE,VENDOR_NUMBER,VENDOR_NAME,DOC_DATE,PO_NUMBER,PO_Date,Grin_No)"
+			+ " SELECT OHD.DOC_NO,IQ.RECEIVED_DATE,IQ.COMPANY_NAME,'1006','254',IQ.[FILE_NAME],13,GETDATE(),"
+			+ " IQ.BUSINESS_UNIT_ID,CASE WHEN IQ.ASSIGNED_TO_USER_ID=0 THEN null ELSE IQ.ASSIGNED_TO_USER_ID END ,"
+			+ " IQ.ASSIGNED_BY_USER_ID,IQ.File_ID,'BL',99,'BL','BL',OHD.GROSS_AMT,0,'',GETDATE(),13,GETDATE()"
+			+ " ,0,'',IQ.Doc_Type,OHD.Vendor_Code,OHD.Vendor_Name,OHD.DOC_DATE,OHD.PO_Number,OHD.Po_Date,OHD.GRIN_Number"
+			+ " FROM  ECRM_CA_INVOICE_QUEUE IQWITH(NOLOCK)  JOIN ECRM_CA_VIEW_OCR_HORIZONTAL_DATA OHD WITH(NOLOCK) ON OHD.FILE_ID=IQ.File_ID"
+			+ " WHERE  IQ.File_ID=?";
+
+	public static final String UPDATE_INVOICE_QUEUE = "update ECRM_CA_INVOICE_QUEUE set Invoice_Assignement_Queue_Status=?,last_action_by=?,last_action_date=? where file_id=?";
+
+// Add Accounting entry from popup
+	public static final String accountEntryFromAddAccountingEntryPopup(String fileId, String blockItemsIds,
+			String userId, int isGstApp) {
+		String memoEntryCheck = "";
+		if (isGstApp == 1) {
+			memoEntryCheck = " AND AC.IS_MEMO = 1 ";
+		}
+		return "INSERT INTO MHC_ACCOUNT_POSTING_ENTRY "
+				+ " (FILE_ID, BLOCK_ID, BLOCK_ITEM_ID, DR_CR_TYPE, AMOUNT, GL_CODE, "
+				+ " DESCRIPTION, STATUS_ID,  IS_MEMO_ENTRY, HSN_SAC_CODE, ENT_BY, ENT_STAMP) "
+				+ " SELECT FILE_ID, AC.BLOCK_ID, CD.SORT_ORDER, AC.DR_CR, SUM(CASE WHEN AC.POSITIVE=GD.DC THEN GD.AMOUNT ELSE GD.AMOUNT*-1 END), "
+				+ " CASE WHEN AC.AC_CODE='VNDAC???' THEN GD.T5#VENDOR_CODE ELSE AC.AC_CODE END ACCOUNT_CODE, AC.AC_NAME, "
+				+ " '0' AS STATUS_ID, AC.IS_MEMO, GD.AFS_18_HSN_CODE, " + userId + ", GETDATE() "
+				+ " FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK)"
+				+ " ON AC.TR_TYPE= GD.TRANSACTION_TYPE "
+				+ " AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE END"
+				+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=" + fileId
+				+ " AND AC.ID IN (" + blockItemsIds + ") " + " WHERE DR_CR='D' " + memoEntryCheck
+				+ " GROUP BY AC.BLOCK_ID, AC.AC_NAME, AC.AC_CODE, GD.T5#VENDOR_CODE, AC.DR_CR, CD.SORT_ORDER, FILE_ID,  IS_MEMO, AFS_18_HSN_CODE "
+				+ " UNION "
+				+ " SELECT FILE_ID, AC.BLOCK_ID, CD.SORT_ORDER, AC.DR_CR, SUM(CASE WHEN AC.POSITIVE=GD.DC THEN GD.AMOUNT ELSE GD.AMOUNT*-1 END) AMT, "
+				+ " CASE WHEN AC.AC_CODE='VNDAC???' THEN GD.T5#VENDOR_CODE ELSE AC.AC_CODE END ACCOUNT_CODE, AC.AC_NAME, "
+				+ " '0' AS STATUS_ID, AC.IS_MEMO, GD.AFS_18_HSN_CODE, " + userId + ", GETDATE() "
+				+ " FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK)"
+				+ " ON AC.TR_TYPE= GD.TRANSACTION_TYPE "
+				+ "AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE END"
+				+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID =" + fileId
+				+ " AND AC.ID IN (" + blockItemsIds + ") " + " WHERE DR_CR='C' " + memoEntryCheck
+				+ " GROUP BY AC.BLOCK_ID, AC.AC_NAME, AC.AC_CODE, GD.T5#VENDOR_CODE, AC.DR_CR, CD.SORT_ORDER, FILE_ID, IS_MEMO, AFS_18_HSN_CODE ORDER BY CD.SORT_ORDER, AC.DR_CR DESC ";
+	}
+
+// Return Items Count left for Block Id already in parent screen
+	public static final String getItemsLeftByBlockSQL(String fileId, String blockId, String itemIds, int isGstApp) {
+		String GET_ADD_ACCOUNT_ENTRY = "SELECT COUNT(MSC.ID) " + " FROM MHC_ACC_CODE_SYS_CONFIG MSC WITH(NOLOCK) "
+				+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON MSC.BLOCK_ID=CD.CODE_ID "
+				+ " LEFT JOIN MHC_ACCOUNT_POSTING_ENTRY PE WITH(NOLOCK) "
+				+ " ON MSC.BLOCK_ID = PE.BLOCK_ID AND MSC.ACCOUNT_NAME = PE.DESCRIPTION AND FILE_ID = " + fileId
+				+ " WHERE MSC.BLOCK_ID = " + blockId + " AND PE.ID IS NULL ";
+		if (isGstApp == 1) {
+			GET_ADD_ACCOUNT_ENTRY = GET_ADD_ACCOUNT_ENTRY + " AND  AC.IS_MEMO = 1 ";
+		}
+		return GET_ADD_ACCOUNT_ENTRY;
+	}
+
+// Return Entry those items of block not in parent screen
+	public static final String getAddAccountEntrySQL(String fileId, String blockId, String itemIds, int isGstApp) {
+		String GET_ADD_ACCOUNT_ENTRY = "SELECT CD.CODE_ABRV AS BLOCK_NAME, MSC.* FROM MHC_ACC_CODE_SYS_CONFIG MSC WITH(NOLOCK) "
+				+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON MSC.BLOCK_ID = CD.CODE_ID  "
+				+ " LEFT JOIN MHC_ACCOUNT_POSTING_ENTRY PE WITH(NOLOCK)  ON MSC.BLOCK_ID = PE.BLOCK_ID AND MSC.ACCOUNT_NAME = PE.DESCRIPTION  "
+				+ " AND FILE_ID = " + fileId + " WHERE MSC.BLOCK_ID = " + blockId + " AND PE.ID IS NULL ";
+		if (isGstApp == 1) {
+			GET_ADD_ACCOUNT_ENTRY = GET_ADD_ACCOUNT_ENTRY + " AND  AC.IS_MEMO = 1 ";
+		}
+
+		return GET_ADD_ACCOUNT_ENTRY;
+	}
+
+// Return Block Count left those Block Ids already in parent screen
+	public static final String getBlockCountSQL(String blockIds, String fileId, int isGstApp) {
+		String GET_ADD_ACCOUNT_ENTRY = "SELECT COUNT(TAB.ID) FROM ( " + " SELECT  " + " AC.ID "
+				+ " FROM MHC_ACC_CODE_SYS_CONFIG AC WITH(NOLOCK) LEFT JOIN MHC_HIS_GRN_DETAIL GD WITH(NOLOCK)  "
+				+ " ON AC.TR_TYPE= GD.TRANSACTION_TYPE  "
+				+ " AND GD.TAX_CODE=CASE WHEN AC.TX_CODE = 'NULL' THEN GD.TAX_CODE ELSE AC.TX_CODE END  "
+				+ " JOIN ECRM_CA_CODES_DETAILS CD  WITH(NOLOCK)  " + " ON AC.BLOCK_ID=CD.CODE_ID AND FILE_ID=" + fileId
+				+ " AND BLOCK_ID NOT IN(" + blockIds + ") ";
+
+		if (isGstApp == 1) {
+			GET_ADD_ACCOUNT_ENTRY = GET_ADD_ACCOUNT_ENTRY + " AND  AC.IS_MEMO = 1 ";
+		}
+
+		GET_ADD_ACCOUNT_ENTRY = GET_ADD_ACCOUNT_ENTRY
+				+ " GROUP BY AC.BLOCK_ID,AC.AC_NAME, AC.AC_CODE,GD.T5#VENDOR_CODE,AC.DR_CR,CD.SORT_ORDER, FILE_ID, AC.ID  "
+				+ " ) TAB ";
+		return GET_ADD_ACCOUNT_ENTRY;
+	}
+
+// Get Invoice Queue Status
+	public static final String GET_INVOICE_QUEUE_STATUS = "SELECT INVOICE_ASSIGNEMENT_QUEUE_STATUS FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID=?";
+
+// get audit accounting entry for item
+	public static final String getAccAuditEntrySQL(String fileId, String userId, String blockId) {
+		String GET_AUDIT_ACC_ENTRY = "INSERT INTO MHC_ACCOUNT_POSTING_ENTRY_AUDIT"
+				+ " SELECT ID,FILE_ID,BLOCK_ID,BLOCK_ITEM_ID,DR_CR_TYPE,AMOUNT,GL_CODE,DESCRIPTION,POSTING_DATE,POSTED_BY,STATUS_ID,PICKED_DATE,"
+				+ " ENT_BY,ENT_STAMP, " + userId
+				+ " ,getdate(),VERSION_NO,HSN_SAC_CODE,REMARKS,IS_MEMO_ENTRY ,Grn_Summary_Col_Name "
+				+ " FROM  MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK) WHERE BLOCK_ID=? AND FILE_ID=? AND ID=? ";
+		return GET_AUDIT_ACC_ENTRY;
+	}
+
+// get audit accounting entry for block
+	public static final String getAccAuditEntrySQLBlock(String fileId, String userId, String blockId) {
+		return "INSERT INTO MHC_ACCOUNT_POSTING_ENTRY_AUDIT"
+				+ " SELECT ID, FILE_ID,BLOCK_ID,BLOCK_ITEM_ID,DR_CR_TYPE,AMOUNT,GL_CODE,DESCRIPTION,POSTING_DATE,POSTED_BY,STATUS_ID,PICKED_DATE,"
+				+ " ENT_BY,ENT_STAMP, " + userId
+				+ " ,getdate(),VERSION_NO,HSN_SAC_CODE,REMARKS,IS_MEMO_ENTRY,Grn_Summary_Col_Name "
+				+ " FROM  MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK)  WHERE BLOCK_ID=? AND FILE_ID=?  ";
+	}
+
+// Query to check version no
+	public static final String ACC_ENTRY_CHECK_VERSION = "SELECT COUNT(*) AS CNT FROM  MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK) WHERE FILE_ID=?  AND ID=? AND VERSION_NO=?";
+
+// Query to check for GST doc type
+	public static final String IS_GST_APPLICABLE = "SELECT IS_GST_APPLICABLE FROM DOCUMENT_MST WITH(NOLOCK) WHERE DOC_MST_ID=?";
+// Query to get block desc
+	public static final String GET_ACC_BLOCK_DESC = "SELECT CODE_ID,CODE_ABRV FROM ECRM_CA_CODES_DETAILS WITH(NOLOCK) WHERE CODE_TYPE_ID=121";
+// Query to get columns names
+	public static final String GET_ACC_SUMMARY_COLUMNS = "SELECT * FROM MHC_HIS_GRN_SUMMARY WITH(NOLOCK) WHERE FILE_ID=1";
+// Get OCR ERP matched status
+	public static final String GET_OCR_ERP_MATCH_STATUS = "SELECT OCR_ERP_MATCH_STATUS FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID=?";
+
+	public static final String SQL_QUERY_TO_GET_STATUS_LIST = "SELECT CODE_ABRV, CODE_ID FROM ECRM_CA_CODES_DETAILS WITH(NOLOCK) "
+			+ " WHERE CODE_ID IN (213,236,214,215,216,242,289,305,350);";
+
+	public static final String GET_VENDOR_OCR_DATA_MIS_SUMMARY_FIELDS = "Select OXD.Data_ID, OXD.File_ID, OXD.Template_ID, OXD.Field_ID, VOFM.Field_Name, VOFM.Caption, OXD.Field_Value, "
+			+ " OXD.Confidence_Level, CD2.CODE_ABRV as Field_Status, OTM.Date_Format, CD1.CODE_ABRV as Date_Format_Val, "
+			+ " OTM.IS_Active, OTD.Order_By, OTD.Is_Mandatory, VOFM.Data_Type, CD3.CODE_ABRV as Data_Type_Val, "
+			+ " VOFM.Field_Length, VOFM.Decimal_Value, VOFM.Is_Bound, OTD.Field_Caption,VOFM.Grn_Summary_Field_Name "
+			+ " From ECRM_CA_OCR_XML_DATA OXD WITH(NOLOCK)  JOIN ECRM_CA_OCR_TEMPLATE_MASTER OTM WITH(NOLOCK) ON OXD.Template_ID = OTM.ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD1 WITH(NOLOCK) ON OTM.Date_Format = CD1.CODE_ID "
+			+ " JOIN ECRM_CA_OCR_TEMPLATE_DETAIL OTD WITH(NOLOCK) ON OXD.Template_ID = OTD.Ocr_Template_ID AND OXD.Field_ID = OTD.Ocr_Field_ID "
+			+ " JOIN ECRM_CA_VENDOR_OCR_FIELD_MASTER VOFM WITH(NOLOCK) ON OXD.Field_ID = VOFM.ID  JOIN ECRM_CA_CODES_DETAILS CD2 WITH(NOLOCK) ON OXD.Confidence_Level = CD2.CODE_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD3 WITH(NOLOCK) ON VOFM.Data_Type = CD3.CODE_ID  "
+			+ " where OXD.File_ID = ? and Grn_Summary_Field_Name is not null "
+			+ " AND VOFM.Field_Name != 'VENDOR_NAME' AND VOFM.Field_Name != 'VENDOR_CODE' "
+			+ " order by OTD.Order_By , OXD.Data_ID ";
+
+	public static final String SQL_QUERY_TO_GET_LIST_OF_DEPARTMENT = "SELECT CODE_ABRV, CODE_ID FROM ECRM_CA_CODES_DETAILS  WITH(NOLOCK) WHERE CODE_TYPE_ID=123";
+
+	public static final String GET_OCR_ERP_DATA_MATCHING_STATUS = "SELECT  OCR_ERP_MATCH_STATUS FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID = ? ";
+
+// get audit accounting entry for block
+	public static final String getAccAuditEntrySQLFileId(String fileId, String userId) {
+		return "INSERT INTO MHC_ACCOUNT_POSTING_ENTRY_AUDIT select ID,File_ID,Block_Id,Block_Item_Id,Dr_Cr_Type,Amount,GL_Code,Description,Status_Id,ERP_Export_Stamp,"
+				+ userId
+				+ ",getdate(),Version_No,Hsn_Sac_Code,Remarks,Is_Memo_Entry,Grn_Summary_Col_Name,PO_Number,PO_Date,Inv_Number,Inv_Date,Jrnal_Type,Treference#Grn_No,Afs_19#Hsn_Code,Afs_3#Po_No FROM  MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK) WHERE  FILE_ID=?";
+	}
+
+// Delete accounting entry when file moved from receive queue to stage queue
+	public static final String DELETE_FROM_MHC_ACCOUNT_POSTING_ENTRY = "DELETE FROM MHC_ACCOUNT_POSTING_ENTRY WHERE FILE_ID=?";
+// update accounting entry when file moved from receive queue to stage queue
+	public static final String UPDATE_MHC_HIS_GRN_DETAIL = "UPDATE MHC_HIS_GRN_DETAIL SET FILE_ID=NULL WHERE FILE_ID=?";
+// update accounting entry when file moved from receive queue to stage queue
+	public static final String UPDATE_MHC_HIS_GRN_SUMMARY = "UPDATE MHC_HIS_GRN_SUMMARY SET FILE_ID=NULL WHERE FILE_ID=?";
+// update accounting entry when file moved from receive queue to stage queue
+	public static final String UPDATE_ECRM_CA_INVOICE_QUEUE = " UPDATE ECRM_CA_INVOICE_QUEUE SET OCR_ERP_MATCH_STATUS=557 WHERE FILE_ID=?";
+// Check Accounting entry posted into SUN or Not
+	public static final String CHECK_ACC_ENTRY_POSTED = "SELECT COUNT(*) CNT FROM MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK) WHERE ERP_Export_Stamp IS NOT NULL and FILE_ID=?";
+// Change ocr in progress status to OCR not success
+	public static final String CANCEL_OCR_INPROGRESS_INVOICES = "UPDATE ECRM_CA_INVOICE_QUEUE SET CONFIDENCE_LEVEL=283 WHERE CONFIDENCE_LEVEL=334 AND INVOICE_ASSIGNEMENT_QUEUE_STATUS=244 AND FILE_ID IN(?)";
+
+// check active company to display logo
+	public static final String CHECK_ACTIVE_COMPANY_TO_DISPLAY_LOGO = "SELECT CODE_ID, CODE_ABRV FROM ECRM_CA_CODES_DETAILS WITH(NOLOCK) WHERE CODE_TYPE_ID = 124 AND ACTIVE_FLAG = 1";
+
+	public static final String GET_ENTITY_NAME_LIST = "SELECT DISTINCT MHC_ENTITY_NAME, MHC_ENTITY_ID FROM ECRM_CA_BUSINESS_UNIT WITH(NOLOCK) "
+			+ "WHERE COMPANYID = ? AND STATUS = 1 AND DELETE_FLAG = 0  ORDER BY MHC_ENTITY_NAME ";
+
+	public static final String GET_BU_LIST_BY_ENTITY_ID = "SELECT DISTINCT UNIT_NAME, BUSINESS_UNIT_ID FROM ECRM_CA_BUSINESS_UNIT WITH(NOLOCK) "
+			+ "WHERE MHC_ENTITY_ID = ? AND STATUS = 1 AND DELETE_FLAG = 0 ORDER BY UNIT_NAME ";
+
+// Get details from invoice queue
+	public static final String GET_REMARKS_FROM_INVOICE_QUEUE = "SELECT POSTING_DATE,REMARK,SHORT_EXCESS_AMT FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID=?";
+// Get details from invoice queue
+	public static final String UPDATE_SHORT_EXCESS_IN_INVOICE_QUEUE = "UPDATE ECRM_CA_INVOICE_QUEUE SET SHORT_EXCESS_AMT=? WHERE  FILE_ID=?";
+
+	public static final String CHECK_SHORT_EXCESS_ADDED = "SELECT COUNT(*) AS CNT FROM MHC_ACCOUNT_POSTING_ENTRY WITH(NOLOCK) WHERE FILE_ID=? AND GL_CODE=?";
+
+// get GRN INFO
+	public static final String getGRNInfo(String stringForGrn) {
+		return "SELECT DISTINCT  BSD.FILE_ID, ID, GRN_NO@TREFERENCE#GRN_NO$R, GROSS_AMT@AMOUNT$R, IGST@AMOUNT$R, SGST@AMOUNT$R, "
+				+ " CGST@AMOUNT$R, AMOUNT@AMOUNT$R, AFS_18, DOC_DATE@AFS_DATE_1#INVOICE_DATE$W, DOC_NO@AFS_2#INV_NUMBER$W "
+				+ " FROM MHC_HIS_GRN_SUMMARY BSD WITH(NOLOCK) " + " WHERE BSD.FILE_ID = ?";
+	}
+
+// Update invoice queue
+	public static final String UPDATE_POSTING_PERIOD_DATE = "UPDATE MHC_HIS_GRN_SUMMARY SET PERIOD#POSING_PERIOD=? WHERE  FILE_ID=?";
+	public static final String GET_POSTING_PERIOD_DATE = "SELECT PERIOD#POSING_PERIOD FROM MHC_HIS_GRN_SUMMARY WITH(NOLOCK) WHERE FILE_ID=?";
+
+// Get WF Status
+	public static final String GET_WF_STATUS = "SELECT WF_STATUS FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID=?";
+
+	public static final String GET_VOUCHAR_NO = "SELECT VOUCHER_NO,FILE_ID FROM ECRM_CA_STAGING_INV_HEADER WITH (NOLOCK) WHERE FILE_ID=?";
+
+	public static final String GET_ALL_POSTING_PERIOD = "SELECT PERIOD FROM MHC_PERIOD_MASTER WITH(NOLOCK) WHERE ACTIVE_FROM<=CAST(GETDATE() as DATE) AND ACTIVE_TO>=CAST(GETDATE() as DATE) AND BU_ID=? AND STATUS=1";
+	public static final String GET_OCR_MODE = "SELECT DOC_OCR_MODE FROM ECRM_CA_BUSINESS_UNIT with(nolock) WHERE BUSINESS_UNIT_ID=?";
+	public static final String GET_DOC_ID = "SELECT DOC_MST_ID FROM DOCUMENT_MST WITH(NOLOCK) WHERE DOC_TITLE=?";
+
+	public static final String GET_ITEM_DISTRIBUTION = "SELECT ITEM_DISTRIBUTION_TYPE FROM ECRM_CA_BUSINESS_UNIT WITH(NOLOCK) WHERE BUSINESS_UNIT_ID=?";
+
+// Get Invoice Queue Status
+	public static final String GET_INVOICE_STATUS = "SELECT INVOICE_ASSIGNEMENT_QUEUE_STATUS FROM ECRM_CA_INVOICE_QUEUE WITH(NOLOCK) WHERE FILE_ID=?";
+
+// update invoice status
+	public static final String UPDATE_INVOICE_STATUS = "update ECRM_CA_INVOICE_QUEUE set Invoice_Assignement_Queue_Status=213 where file_ID=?";
+
+// GET COUNT for user wise release board
+	public static final String GET_RELEASE_COUNT = "SELECT COUNT(*) AS CNT FROM ECRM_CA_RELEASE_BOARD_NOTIFICATION WITH(NOLOCK)  WHERE USER_ID=? AND SHOW_NEW_RELEASE_NOTIFICATION=1";
+
+// GET List for user wise release board
+	public static final String GET_RELEASE_ITEMLIST = "SELECT LTRIM(RTRIM(RELEASE_VERSION_NO)) AS RELEASE_VERSION_NO,RELEASE_STAMP,DESCRIPTION,CD.CODE_ABRV FROM ECRM_CA_RELEASE_BOARD_NOTIFICATION BN WITH(NOLOCK) JOIN ECRM_CA_RELEASE_BOARD RB WITH(NOLOCK) ON  RB.RELEASE_ID=BN.RELEASE_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON CD.CODE_ID=RB.RELEASE_TYPE WHERE SHOW_NEW_RELEASE_NOTIFICATION=1 AND BN.USER_ID=? ORDER BY RB.RELEASE_ID DESC";
+// update notification for user wise release board
+	public static final String UPDATE_NOTIFICATION = "UPDATE ECRM_CA_RELEASE_BOARD_NOTIFICATION SET SHOW_NEW_RELEASE_NOTIFICATION=0 WHERE USER_ID=?";
+
+	public static final String GET_ALL_RELEASE_ITEMLIST = "SELECT LTRIM(RTRIM(RELEASE_VERSION_NO)) AS RELEASE_VERSION_NO,RELEASE_STAMP,DESCRIPTION,CD.CODE_ABRV FROM ECRM_CA_RELEASE_BOARD_NOTIFICATION BN WITH(NOLOCK) JOIN ECRM_CA_RELEASE_BOARD RB WITH(NOLOCK) ON  RB.RELEASE_ID=BN.RELEASE_ID "
+			+ " JOIN ECRM_CA_CODES_DETAILS CD WITH(NOLOCK) ON CD.CODE_ID=RB.RELEASE_TYPE WHERE BN.USER_ID=? ORDER BY RB.RELEASE_ID DESC";
+// Delete accounting entry when file moved from receive queue to stage queue
+	public static final String UPDATE_MOVE_TO_STAGE_STATUS = "UPDATE ECRM_CA_INVOICE_QUEUE SET IS_MOVED_TO_STAGE=1 WHERE FILE_ID=?";
+
+// Get Process Mode From Document Master
+	public static final String GET_PROCESS_MODE = "SELECT PROCESS_MODE FROM DOCUMENT_MST WITH(NOLOCK) WHERE DOC_MST_ID=?";
+
+// Update Vouchar No
+	public static final String UPDATE_VOUCHAR_NO = "UPDATE ECRM_CA_STAGING_INV_HEADER SET VOUCHER_NO=? WHERE FILE_ID=?";
+
+	public static final String UPDATE_INVOICE_QUEUE_FOR_MANUAL_PROCESS = "update ECRM_CA_INVOICE_QUEUE set Invoice_Assignement_Queue_Status=?,last_action_by=?,last_action_date=?,process_mode=? where file_id=?";
+
+// Get Process Mode From Document Master
+	public static final String GET_GRN_COUNT = "SELECT COUNT(1) AS CNT FROM DBO.MHC_HIS_GRN_SUMMARY  WITH(NOLOCK) WHERE FILE_ID=? GROUP BY FILE_ID";
+	public static final String UPDATE_MOVE_TO_RECEIVE_STATUS = "UPDATE ECRM_CA_INVOICE_QUEUE SET IS_MOVED_TO_STAGE=0 WHERE FILE_ID=?";
+
+	public static final String GET_INDEX_BY_USERS = "SELECT DISTINCT HD.INDEXED_BY AS USERID,UP.FIRST_NAME+' '+UP.LAST_NAME AS NAME  FROM ECRM_CA_VIEW_OCR_HORIZONTAL_DATA HD WITH(NOLOCK)JOIN  ECRM_CA_USER_PROFILE UP WITH(NOLOCK) ON UP.USERIDNUMBER=HD.INDEXED_BY and  BUSINESS_UNIT_ID=? ORDER BY NAME ASC";
+
+	/** The Constant Get Rollback Status from Document Master. */
+	public static final String GET_IS_ROLLBACK_ALLOW_STATUS = "SELECT IS_ROLLBACK_ALLOW FROM DOCUMENT_MST WITH(NOLOCK) WHERE DOC_MST_ID= ?";
+
+// Update accounting entry
+	public static final String UPDATE_MHC_ACCOUNT_POSTING_ENTRY = "UPDATE MHC_ACCOUNT_POSTING_ENTRY SET STATUS_ID=1 WHERE FILE_ID=?";
+
+	public static final String GET_INDEX_BY_ALL_USERS = "SELECT DISTINCT HD.INDEXED_BY AS USERID,UP.FIRST_NAME+' '+UP.LAST_NAME AS NAME  FROM ECRM_CA_VIEW_OCR_HORIZONTAL_DATA HD WITH(NOLOCK)JOIN  ECRM_CA_USER_PROFILE UP WITH(NOLOCK) ON UP.USERIDNUMBER=HD.INDEXED_BY  ORDER BY NAME ASC";
+
+	public static final String GET_CODE_DESC_BY_ID = "SELECT CODE_DESC FROM ECRM_CA_CODES_DETAILS CD WITH (NOLOCK) WHERE CD.CODE_TYPE_ID=? AND ACTIVE_FLAG=1";
+
+	public static final String GET_INVOICE_DATE = "SELECT CAST(DOC_DATE AS DATE) AS INVOICE_DATE FROM ECRM_CA_VIEW_OCR_HORIZONTAL_DATA WITH(NOLOCK) WHERE FILE_ID=?";
+
+	public static final String GET_PARKED_BY = "SELECT distinct UP.USERIDNUMBER AS USERID,UP.FULL_NAME AS NAME FROM  ECRM_CA_INVOICE_QUEUE IQ  WITH(NOLOCK) "
+			+ "JOIN ECRM_CA_USER_PROFILE UP  WITH(NOLOCK) ON UP.USERIDNUMBER=IQ.Account_Entry_Posted_By"
+			+ "AND IQ.INVOICE_ASSIGNEMENT_QUEUE_STATUS=216 where IQ.Business_Unit_ID=? and  UP.USERIDNUMBER not in(13,1) and Account_Entry_Posted_By is not null";
+
+// Update accounting entry
+	public static final String UPDATE_INVOIC_QUEUE = "UPDATE ECRM_CA_INVOICE_QUEUE SET Account_Entry_Posted_By=?,Account_Entry_Posted_Stamp=getdate(),prs_created_by=?,PRS_Creation_Stamp=getdate() WHERE FILE_ID=?";
+
+	public static final String GET_USER_NAME = "SELECT FULL_NAME FROM ECRM_CA_USER_PROFILE with(nolock) WHERE USERIDNUMBER=?";
+
+	public static final String SAVE_OCR_DATA_IN_AUDIT_TABLE = "INSERT INTO ECRM_CA_OCR_XML_DATA_AUDIT(DATA_ID,FILE_ID,TEMPLATE_ID,RECORD_ID,FIELD_ID,ROW_ORDER_NO,FIELD_VALUE,CONFIDENCE_LEVEL,UPD_STAMP,UPD_BY)"
+			+ " SELECT DATA_ID,FILE_ID,TEMPLATE_ID,RECORD_ID,FIELD_ID,ROW_ORDER_NO,FIELD_VALUE,CONFIDENCE_LEVEL,GETDATE(),1 FROM ECRM_CA_OCR_XML_DATA WITH(NOLOCK) WHERE FILE_ID=?";
+
+	public static final String GET_BRC_FORM_HEADER_DATA = "SELECT MST_ID AS ID, UNIT_CODE, UNT_UNITNAME,DOC_NO AS INV_NO,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(INVOICE_DATE as date) ,113),'1900-01-01'),'') AS INVOICE_DATE, "
+			+ " ACCOUNT_CODE AS CUSTCODE,CUST_NAME,DOCM_CURRENCY AS CURRENCY,DOCM_XCHGRATE AS EX_RATE,DOCM_AMT AS FAMOUNT ,DOCM_BASECURAMT AS AMTINR "
+			+ " FROM ECRM_CA_BRC_REGISTER_MST WITH(NOLOCK) WHERE TYPE='I' ";
+
+	public static final String UPDATE_BRC_REG_FORM = "UPDATE ECRM_CA_BRC_REGISTER_MST SET Export_Inv_No=?, Export_Inv_Date=?,Document_Submission_Date=?,Shipping_Bill_No=?,Shipping_Date=?,[BL/AWB]=?,BL_Date=?,Bank_Control_No=?,BANK_CONTROL_DATE=?,"
+			+ " Brc_Applied_Date=?,BRC_No=?,Remarks=? , Complete_Status=? ,R_DATE=? WHERE MST_ID=?";
+
+	public static final String GET_BRC_INVOICE_DETAIL_DATA = "SELECT DTL_ID AS DETAIL_ID, DOC_NO AS INVOICE_NO, TRD_DOCNO AS BANK_VOUCHER_NO,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(TRD_DATE as date) ,113),'1900-01-01'),'') AS BANK_VOUCH_DATE , "
+			+ " ISNULL(TRD_FUNDTRANSNO,'') AS FUND_TRSFR_NO,Forex_Amount,Ex_Rate AS FT_EX_RATE,TRD_BASCURAMT AS AMOUNT_INR,PAYD_ARDOCAPPVAL AS AMT_AGAINST_INV "
+			+ " FROM ECRM_CA_BRC_REGISTER_DETAILS WITH(NOLOCK) WHERE INVOICE_NO=?";
+
+	public static final String GET_BRC_INVOICE_MANUAL_DETAIL_DATA = "SELECT MST_ID AS BRC_ID,UNT_UNITNAME,CUST_NAME, ISNULL(Export_Inv_No,'') AS Export_Inv_No,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(Export_Inv_Date as date) ,113),'1900-01-01'),'') AS Export_Inv_Date, ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(Document_Submission_Date as date) ,113),'1900-01-01'),'') AS Document_Submission_Date, "
+			+ " ISNULL(Shipping_Bill_No,'') AS Shipping_Bill_No,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(Shipping_Date as date) ,113),'1900-01-01'),'') AS Shipping_Date,ISNULL([BL/AWB],'')  AS BL_AW,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(BL_Date as date) ,113),'1900-01-01'),'')  AS BL_Date, "
+			+ " ISNULL(Bank_Control_No,'')  AS Bank_Control_No, ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(BANK_CONTROL_DATE as date) ,113),'1900-01-01'),'')  AS Date, "
+			+ " ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(Brc_Applied_Date as date) ,113),'1900-01-01'),'') AS Brc_Applied_Date, ISNULL(BRC_No,'')  AS BRC_No, ISNULL(Remarks,'')  AS Remarks,ISNULL(Complete_Status,'0') AS Complete_Status,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(R_DATE as date) ,113),'1900-01-01'),'')  AS R_Date "
+			+ "FROM ECRM_CA_BRC_REGISTER_MST WITH(NOLOCK) WHERE MST_ID=?";
+
+	public static final String GET_DATA_FOR_ADD_ROW = "SELECT BRCM.MST_ID,DTL_ID AS DETAIL_ID,BRCD.CREDIT_NO,ISNULL(BRCM.TYPE,'') AS TYPE, TRD_DOCNO AS BANK_VOUCHER_NO,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(TRD_DATE as date) ,113),'1900-01-01'),'') AS BANK_VOUCH_DATE ,"
+			+ " Forex_Amount,Ex_Rate AS FT_EX_RATE,TRD_BASCURAMT AS AMOUNT_INR,PAYD_ARDOCAPPVAL AS AMT_AGAINST_INV "
+			+ " FROM ECRM_CA_BRC_REGISTER_DETAILS BRCD WITH(NOLOCK) "
+			+ " JOIN ECRM_CA_BRC_REGISTER_MST  BRCM WITH(NOLOCK) ON BRCD.MST_ID= BRCM.MST_ID "
+			+ " WHERE TRD_FUNDTRANSNO LIKE ? AND  BRCD.CREDIT_NO !='' ";
+
+	/**
+	 * @param _parameters
+	 * @return
+	 */
+	public static final String getBRCFormSearchData(Map<String, String> _parameters) {
+		String query = "SELECT BRC.MST_ID AS ID, BRC.UNIT_CODE, BRC.UNT_UNITNAME,BRC.DOC_NO AS INV_NO,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(BRC.INVOICE_DATE as date) ,113),'1900-01-01'),'') AS INVOICE_DATE, "
+				+ " BRC.ACCOUNT_CODE AS CUSTCODE,BRC.CUST_NAME,BRC.DOCM_CURRENCY AS CURRENCY,BRC.DOCM_XCHGRATE AS EX_RATE,BRC.DOCM_AMT AS FAMOUNT ,BRC.DOCM_BASECURAMT AS AMTINR "
+				+ " FROM ECRM_CA_BRC_REGISTER_MST BRC WITH(NOLOCK) "
+				+ " JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK) ON BU.BUSINESS_UNIT_ID=BRC.BU_ID "
+				+ " JOIN ECRM_CA_COMPANY_PROFILE CM WITH(NOLOCK) ON BU.COMPANYID=CM.COMPANYID "
+				+ " JOIN ECRM_CA_BRC_REGISTER_DETAILS DET WITH(NOLOCK) ON DET.MST_ID=BRC.MST_ID "
+				+ " WHERE  BRC.INVOICE_NO !='' AND DET.TRD_DOCNO LIKE '%" + _parameters.get("bankVoucherNo") + "%'"
+				+ " AND BRC.INVOICE_DATE BETWEEN '" + _parameters.get("fromDateSearch") + "' AND '"
+				+ _parameters.get("toDateSearch") + "' AND BRC.CUST_NAME LIKE '%" + _parameters.get("vendorNameSearch")
+				+ "%' AND BRC.ACCOUNT_CODE LIKE '%" + _parameters.get("vendorCodeSearch") + "%' AND ";
+
+		if (_parameters.get("businessUnitNameSearch") == "") {
+			query = query + "BRC.BU_ID LIKE '%%' ";
+		} else {
+			query = query + "BRC.BU_ID ='" + _parameters.get("businessUnitNameSearch") + "'";
+		}
+		query = query + " AND ";
+
+		if (_parameters.get("companyNameSearch") == "") {
+			query = query + "CM.companyid LIKE '%%' ";
+		} else {
+			query = query + "CM.companyid ='" + _parameters.get("companyNameSearch") + "'";
+		}
+
+		if (!_parameters.get("statusSearch").equalsIgnoreCase("0")) {
+			query = query + " AND ";
+			query = query + "BRC.Complete_Status ='" + _parameters.get("statusSearch") + "'";
+		}
+
+		return query;
+	}
+
+	/**
+	 * @param _parameters
+	 * @return
+	 */
+	public static final String getBRCFormDataForExcel(Map<String, String> _parameters) {
+		String query = "SELECT ISNULL(M.DOC_NO ,'') AS INV_NO,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(INVOICE_DATE as date) ,113),'1900-01-01'),'') AS INVOICE_DATE, "
+				+ "ISNULL(ACCOUNT_CODE ,'') AS ACC_CODE,ISNULL(CUST_NAME,'') AS CUST_NAME,ISNULL(DOCM_CURRENCY,'') AS CURR, ISNULL(DOCM_AMT,0) AS DOCM_AMT, ISNULL(DOCM_XCHGRATE,0) AS DOCM_XCHRGRATE, "
+				+ "ISNULL(DOCM_BASECURAMT,0) AS DOCM_BASECURAMT,ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(Document_Submission_Date as date) ,113),'1900-01-01'),'') AS DOC_SUB_DATE, "
+				+ "ISNULL(Shipping_Bill_No,'') AS SHIP_BILL_NO, "
+				+ "ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(Shipping_Date as date) ,113),'1900-01-01'),'') AS SHIP_BILL_DATE, ISNULL([BL/AWB],'') AS BL_AWB, "
+				+ "ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(BL_Date as date) ,113),'1900-01-01'),'') AS BL_DATE,ISNULL(Bank_Control_No,'') AS BANK_CNTRL_NO,ISNULL(TRD_DOCNO,'')AS TRD_DOCNO, "
+				+ "ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(TRD_DATE as date) ,113),'1900-01-01'),'') AS TRD_DATE,ISNULL(TRD_FUNDTRANSNO,'') AS TRD_FUNDTRSFRNO,ISNULL(PAYD_ARDOCAPPVAL,0) AS PAYD_ARDOCAPPVAL, "
+				+ "ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(Brc_Applied_Date as date) ,113),'1900-01-01'),'') AS BRC_APPLIED_DATE,ISNULL(BRC_No,'') AS BRC_NO,ISNULL(Remarks,'') AS REMARK, "
+				+ "ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(BANK_CONTROL_DATE as date) ,113),'1900-01-01'),'') AS BANK_CONTROL_DATE, "
+				+ "ISNULL(NULLIF(dbo.FN_FORMAT_DATE(cast(R_DATE as date) ,113),'1900-01-01'),'') AS R_DATE, "
+				+ "ISNULL(FOREX_AMOUNT,0) AS FOREX_AMOUNT, "
+				+ "ISNULL(Z.Bank_Chargs_Variance,0) as Bank_Chargs_Variance  " + "FROM ECRM_CA_BRC_REGISTER_MST M "
+				+ "JOIN (select MST.DOC_NO,(DOCM_BASECURAMT - SUM(FOREX_AMOUNT) ) As Bank_Chargs_Variance"
+				+ " FROM ECRM_CA_BRC_REGISTER_MST MST (NOLOCK) "
+				+ "INNER JOIN ECRM_CA_BRC_REGISTER_DETAILS DET (NOLOCK) ON DET.DOC_NO=MST.DOC_NO "
+				+ "GROUP BY MST.DOC_NO,DOCM_BASECURAMT)Z  ON Z.DOC_NO=M.DOC_NO "
+				+ "INNER JOIN ECRM_CA_BRC_REGISTER_DETAILS D ON D.DOC_NO=M.DOC_NO "
+				+ "JOIN ECRM_CA_BUSINESS_UNIT BU WITH(NOLOCK) ON BU.BUSINESS_UNIT_ID=M.BU_ID "
+				+ "JOIN ECRM_CA_COMPANY_PROFILE CM WITH(NOLOCK) ON BU.COMPANYID=CM.COMPANYID "
+				+ "WHERE M.TYPE='I' AND D.TRD_DOCNO LIKE '%" + _parameters.get("bankVoucherNo") + "%'"
+				+ " AND M.INVOICE_DATE BETWEEN '" + _parameters.get("fromDateSearch") + "' AND '"
+				+ _parameters.get("toDateSearch") + "' AND M.CUST_NAME LIKE '%" + _parameters.get("vendorNameSearch")
+				+ "%' AND M.ACCOUNT_CODE LIKE '%" + _parameters.get("vendorCodeSearch") + "%' AND ";
+
+		if (_parameters.get("businessUnitNameSearch") == "") {
+			query = query + "M.BU_ID LIKE '%%' ";
+		} else {
+			query = query + "M.BU_ID ='" + _parameters.get("businessUnitNameSearch") + "'";
+		}
+		query = query + " AND ";
+
+		if (_parameters.get("companyNameSearch") == "") {
+			query = query + "CM.companyid LIKE '%%' ";
+		} else {
+			query = query + "CM.companyid ='" + _parameters.get("companyNameSearch") + "'";
+		}
+
+		if (!_parameters.get("statusSearch").equalsIgnoreCase("0")) {
+			query = query + " AND ";
+			query = query + "M.Complete_Status ='" + _parameters.get("statusSearch") + "'";
+		}
+
+		query = query + "ORDER BY M.DOC_NO DESC ";
+
+		return query;
+	}
+
+}
