@@ -120,7 +120,8 @@ public class FileStorageServiceImpl implements FileStorageService{
 			}
 
 			isSuccess = uploadFile(fileAttachementDTO,uploadFileData, totalFile, totalvalidFile, uploadedFileList);
-
+			markMailAsUnread.markEmailAsRead(fileAttachementDTO.getEmailFolder(), fileAttachementDTO.getMessage());
+			
 		} catch (Exception ex) {
 			markMailAsUnread.markMailAsUnread(fileAttachementDTO.getEmailFolder(), fileAttachementDTO.getMessage());
 			isSuccess = false;
@@ -278,6 +279,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 		} finally {
 			auditService.updateMailLogDetail(generatedEmailId, uploadedAttachmentName, fileUploadCount, totalFile);
 		}
+		
 		return isSuccess;
 	}
 

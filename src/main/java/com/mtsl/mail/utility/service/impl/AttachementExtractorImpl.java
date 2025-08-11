@@ -67,7 +67,8 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 
 		Message[] messages = mailDTO.getEmailFolder().search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
 		// for prod testing messages.length -> limit
-		int limit =  messages.length; //2;
+		int limit = messages.length;
+		boolean result =false;
 
 		for (int mailIteration = 0; mailIteration < limit; mailIteration++) {
 
@@ -102,7 +103,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 
 					String strFileNameExtension = "";
 
-					if (!fileName.isBlank()) {
+					if (fileName != null && !fileName.isBlank()) {
 						strFileNameExtension = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
 								.trim();
 						dto.setFileName(fileName);
@@ -114,7 +115,8 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 							BodyPart bodyPart = mp.getBodyPart(ii);
 							String mailBody = getText(bodyPart);
 							if (mailBody != null && !mailBody.isBlank()) {
-								mailBodyContent.append(mailBodyContent).append(mailBody);
+								mailBodyContent.append(mailBody);
+
 							}
 						}
 						emailLogDTO.setEmailBody(mailBodyContent.toString());
@@ -145,6 +147,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 						boolean isSuccess = fileStorageService.downLoadAttachment(mailDTO);
 
 						if (isSuccess) {
+							result=true;
 							SendMailDTO sendMailDTO = new SendMailDTO();
 							sendMailDTO.setCommonEmailId("ajay.kumar10@Motherson.com");
 							sendMailDTO.setMailTo("ajay.kumar10@Motherson.com");
@@ -156,7 +159,6 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 							 * companyBu, long emaliLogId, String mailTo
 							 */
 							mailSenderService.doSendMailForEmailLog(sendMailDTO);
-							return true;
 						}
 					}
 
@@ -169,7 +171,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 			}
 		}
 
-		return false;
+		return result;
 	}
 
 	/**

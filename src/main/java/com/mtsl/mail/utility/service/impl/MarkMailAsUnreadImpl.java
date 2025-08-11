@@ -40,5 +40,15 @@ public class MarkMailAsUnreadImpl implements MarkMailAsUnread {
 			logger.error(e1.toString());
 		}
 	}
+	
+	@Override
+	public void markEmailAsRead(Folder emailFolder, Message message) {
+		try {
+			emailFolder.setFlags(new Message[] { message }, new Flags(Flags.Flag.SEEN), true);
+		} catch (MessagingException e1) {
+			e1.printStackTrace();
+		}
+		
+	}
 
 }

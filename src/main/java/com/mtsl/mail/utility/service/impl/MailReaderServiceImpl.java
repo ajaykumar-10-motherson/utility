@@ -22,6 +22,7 @@ import com.mtsl.mail.utility.dto.SystemConfigurationVO;
 import com.mtsl.mail.utility.security.MordenAuthentication;
 import com.mtsl.mail.utility.service.AttachementExtractor;
 import com.mtsl.mail.utility.service.MailReaderService;
+import com.mtsl.mail.utility.service.MarkMailAsUnread;
 
 import lombok.RequiredArgsConstructor;
 
@@ -49,6 +50,7 @@ public class MailReaderServiceImpl implements MailReaderService {
 	private final MailConfiguration mailConfiguration;
 
 	private final AttachementExtractor attachementExtractor;
+	
 
 	private Properties properties = (Properties) System.getProperties().clone();
 
@@ -92,9 +94,9 @@ public class MailReaderServiceImpl implements MailReaderService {
 			mailDTO.setOcrUnStructuredSourcePath(ocrSourcePath);
 			
 			attachementExtractor.extractAttachments(mailDTO);
-			}
+		}
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Exception ::",e.getMessage());
 			e.printStackTrace();
 		}
 

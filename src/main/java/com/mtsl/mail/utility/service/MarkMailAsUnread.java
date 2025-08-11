@@ -6,4 +6,7 @@ import javax.mail.Message;
 public interface MarkMailAsUnread {
 
 	public  void markMailAsUnread(Folder emailFolder, Message message);
+	
+	public  void markEmailAsRead(Folder emailFolder, Message message);
+	
 }
