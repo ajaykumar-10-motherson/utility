@@ -28,7 +28,6 @@ import com.mtsl.mail.utility.service.AuditService;
 import com.mtsl.mail.utility.service.FileStorageService;
 import com.mtsl.mail.utility.service.MarkMailAsUnread;
 
-import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 
 
@@ -54,7 +53,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 		String fileName = null;
 		String strFileNameExtension = null;
 		InputStream is = null;
-		boolean is_Success = true;
+		boolean isSuccess = true;
 		Object objRef = fileAttachementDTO.getObjRef();
 		if (objRef instanceof Multipart) {
 			multipart = (Multipart) fileAttachementDTO.getMessage().getContent();
@@ -78,7 +77,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 					BodyPart bodyPart = multipart.getBodyPart(i1);
 					fileName = bodyPart.getFileName();
 					dto.setOriginalFileName(bodyPart.getFileName());
-					if (StringUtils.isBlank(fileName)) {
+					if (fileName.isBlank()) {
 						continue;
 					}
 
@@ -90,7 +89,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 
 					dto.setFileName(fileName);
 
-					if (StringUtils.isNotBlank(fileName)) {
+					if (!fileName.isBlank()) {
 
 						strFileNameExtension = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
 								.trim();
@@ -120,17 +119,17 @@ public class FileStorageServiceImpl implements FileStorageService{
 				}
 			}
 
-			is_Success = uploadFile(fileAttachementDTO,uploadFileData, totalFile, totalvalidFile, uploadedFileList);
+			isSuccess = uploadFile(fileAttachementDTO,uploadFileData, totalFile, totalvalidFile, uploadedFileList);
 
 		} catch (Exception ex) {
 			markMailAsUnread.markMailAsUnread(fileAttachementDTO.getEmailFolder(), fileAttachementDTO.getMessage());
-			is_Success = false;
+			isSuccess = false;
 		} finally {
 			if (is != null)
 				is.close();
 
 		}
-		return is_Success;
+		return isSuccess;
 	
 	}
 	
@@ -154,7 +153,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 		String[] validExtensionArray;
 		int fileUploadCount = 0;
 		String batchId = null;
-		boolean is_Success = true;
+		boolean isSuccess = true;
 		try{
 			validExtensionArray = validExtension.split(";");
 			batchId = auditService.getNewBatchIdForBulkUpload("WS", "504");
@@ -168,8 +167,8 @@ public class FileStorageServiceImpl implements FileStorageService{
 				Long fileSize = 0l;
 
 				String fileNameWithOutExt = FilenameUtils.removeExtension(dto.getFileName());
-				String docType = "4";
-				String docId = "4";
+				String docType = defDocType;
+				String docId = defDocType;
 				String userId = "1";
 				String userName = "";
 				String companyIdWithPrefix;
@@ -215,7 +214,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 							buCode, buName, companyId, companyName, docType, generatedEmailId);
 				}
 
-				if (generatedFileId > 0) {
+				if (generatedFileId > 0l) {
 					uploadedFileStatus = "1";
 				} else {
 					uploadedFileStatus = "0";
@@ -273,13 +272,13 @@ public class FileStorageServiceImpl implements FileStorageService{
 			}
 
 		} catch (Exception exception) {
-			is_Success = false;
+			isSuccess = false;
 			markMailAsUnread.markMailAsUnread(emailFolder, message);
 
 		} finally {
 			auditService.updateMailLogDetail(generatedEmailId, uploadedAttachmentName, fileUploadCount, totalFile);
 		}
-		return is_Success;
+		return isSuccess;
 	}
 
 	

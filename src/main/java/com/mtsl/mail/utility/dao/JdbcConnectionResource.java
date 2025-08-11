@@ -1,9 +1,9 @@
 package com.mtsl.mail.utility.dao;
 
+import javax.annotation.Resource;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import jakarta.annotation.Resource;
 
 public abstract class JdbcConnectionResource {
 	@Resource

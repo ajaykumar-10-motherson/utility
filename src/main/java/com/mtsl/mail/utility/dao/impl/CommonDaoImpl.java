@@ -32,8 +32,12 @@ public class CommonDaoImpl extends JdbcConnectionResource implements CommonDao {
 	@Override
 	public MailDTO getGenericDatafromDB(String email) {
 	    String sql = CommonSqlQuery.GENERIC_EMAIL_ID_TO_DOWNLOAD_ATTACHMENT;
+	    
+	   
 
 	    List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, email);
+	    
+	    List<Map<String , Object>> resultSet=jdbcTemplate.queryForList(sql, email);
 
 	    if (results.isEmpty()) {
 	        return null;
@@ -48,6 +52,11 @@ public class CommonDaoImpl extends JdbcConnectionResource implements CommonDao {
 	    mailDTO.setBuId(String.valueOf(row.get("BUSINESS_UNIT_ID")));
 	    mailDTO.setBuName(String.valueOf(row.get("UNIT_NAME")));
 	    mailDTO.setBuCode(String.valueOf(row.get("UNIT_CODE")));
+	    
+	    String ftpLocation = jdbcTemplate.queryForObject(CommonSqlQuery.GET_FTP_LOCATION, String.class, mailDTO.getBuCode());
+	    
+	    mailDTO.setFtpUploadLocation(ftpLocation);
+	    
 	    return mailDTO;
 
 	}

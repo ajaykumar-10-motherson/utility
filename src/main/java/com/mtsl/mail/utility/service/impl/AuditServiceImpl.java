@@ -121,7 +121,24 @@ public class AuditServiceImpl extends JdbcConnectionResource implements AuditSer
 	@Override
 	public void updateMailLogDetail(Long generatedEmailId, ArrayList<String> attachmentNames, int fileUploadCount,
 			int totalFile) {
-		jdbcTemplate.update(CommonSqlQuery.UPDATE_INTO_ECRM_CA_EMAIL_LOG, totalFile, fileUploadCount, generatedEmailId);
+		String attachmentFileName = String.join(", ", attachmentNames); 
+		int status;
+		if (totalFile == 0 || fileUploadCount == 0) {
+			status = 799;
+		} else if (totalFile > fileUploadCount) {
+			status = 798;
+		} else {
+			status = 797;
+		}
+
+		String sql = "UPDATE ECRM_CA_GENERIC_EMAIL_UPLOAD_LOG "
+				+ "SET TOTAL_ATTACHMENTS = ?, TOTAL_ATTACHMENT_UPLOADED = ?, STATUS = ? " + "WHERE ID = ?";
+
+		try {
+			jdbcTemplate.update(sql, totalFile, fileUploadCount, status, generatedEmailId);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 
 	@Override
@@ -233,72 +250,70 @@ public class AuditServiceImpl extends JdbcConnectionResource implements AuditSer
 	@Override
 	public void updateEmailLogDetailsEntry(String originalFileName, String newFileName, String uploadedFileStatus,
 			String fileId, String generatedEmailId) {
-			// Determine isDuplicate (though in current logic it’s unused)
-			String isDuplicate = "0";
-			if ("1".equalsIgnoreCase(uploadedFileStatus)) {
-				isDuplicate = "0";
-			} else if ("0".equalsIgnoreCase(uploadedFileStatus)) {
-				isDuplicate = "1";
-			}
+		// Determine isDuplicate (though in current logic it’s unused)
+		String isDuplicate = "0";
+		if ("1".equalsIgnoreCase(uploadedFileStatus)) {
+			isDuplicate = "0";
+		} else if ("0".equalsIgnoreCase(uploadedFileStatus)) {
+			isDuplicate = "1";
+		}
 
-			// Adjust fileId if it is "0"
-			String fileIdValue = "0".equals(fileId) ? null : fileId;
+		// Adjust fileId if it is "0"
+		String fileIdValue = "0".equals(fileId) ? null : fileId;
 
-			// Default status if blank
-			if (uploadedFileStatus.isBlank()) {
-				uploadedFileStatus = "0";
-			}
+		// Default status if blank
+		if (uploadedFileStatus.isBlank()) {
+			uploadedFileStatus = "0";
+		}
 
-			String sql = "UPDATE ECRM_CA_GENERIC_EMAIL_UPLOAD_DETAILS "
-					+ "SET FILE_NAME = ?, STATUS = ?, FILE_ID = ?, UPD_STAMP = GETDATE() "
-					+ "WHERE ORGINAL_FILE_NAME = ? AND EMAIL_DOC_LOG_ID = ?";
+		String sql = "UPDATE ECRM_CA_GENERIC_EMAIL_UPLOAD_DETAILS "
+				+ "SET FILE_NAME = ?, STATUS = ?, FILE_ID = ?, UPD_STAMP = GETDATE() "
+				+ "WHERE ORGINAL_FILE_NAME = ? AND EMAIL_DOC_LOG_ID = ?";
 
-			jdbcTemplate.update(sql, newFileName, uploadedFileStatus, fileIdValue, originalFileName, generatedEmailId);
+		jdbcTemplate.update(sql, newFileName, uploadedFileStatus, fileIdValue, originalFileName, generatedEmailId);
 
 	}
-	
+
 	@Override
-	public List<Map<String, String>> doLogSelectedFileForUpload(
-	        String buId, String companyName, String buName, String batchId, String uploadedFiles,
-	        String userName, long userId, String userIpAddress, String maxFileSize, int index,
-	        String ipAddress, String splitRequired, String splitPageCount,
-	        String name){
+	public List<Map<String, String>> doLogSelectedFileForUpload(String buId, String companyName, String buName,
+			String batchId, String uploadedFiles, String userName, long userId, String userIpAddress,
+			String maxFileSize, int index, String ipAddress, String splitRequired, String splitPageCount, String name) {
 
-	    List<Map<String, String>> bulkUploadResponseList = new ArrayList<>();
+		List<Map<String, String>> bulkUploadResponseList = new ArrayList<>();
 
-	    try {
-	        String insertImageUploadLog =
-	                "CREATE TABLE #TEMP_FILE_LIST(VALUE NVARCHAR(1000)) " +
-	                "INSERT INTO #TEMP_FILE_LIST(VALUE) SELECT * FROM FN_BPO_SPLIT(N'" +
-	                uploadedFiles.replace("'", "''") + "','|') " +
-	                "INSERT INTO ECRM_CA_IMAGE_UPLOAD_LOG(Batch_No, BU_ID, Company_Name, BU_Name, File_Name, Original_File_Name, Size, " +
-	                "Upload_By, Upload_By_ID, Upload_Stamp, Source, C_IP_Address, Operation_Type, Status, Page_Split_Size) " +
-	                "SELECT '" + batchId + "' AS Batch_No, '" + buId + "' AS BU_ID, '" + companyName + "' AS Company_Name, '" + buName + "' AS BU_Name, " +
-	                "dbo.FN_ParseString(-1, ':', SPLIT.VALUE) File_Name, " +
-	                "dbo.FN_ParseString(-4, ':', SPLIT.VALUE) Original_File_Name, " +
-	                "dbo.FN_ParseString(-5, ':', SPLIT.VALUE) Size, '" + userName + "' AS Upload_By, '" + userId + "' AS Upload_By_ID, " +
-	                "GETDATE() Upload_Stamp, 'WS' SOURCE, '" + ipAddress + "' C_IP_ADDRESS, " +
-	                "CASE ISNULL(IUL.Image_Log_Id, 0) WHEN 0 THEN '512' ELSE '513' END OPERATION_TYPE, " +
-	                "CASE WHEN CAST(dbo.FN_ParseString(-5, ':', SPLIT.VALUE) AS NUMERIC)=0 " +
-	                "     OR CAST(dbo.FN_ParseString(-5, ':', SPLIT.VALUE) AS NUMERIC) > '" + maxFileSize + "' THEN '509' " +
-	                "     ELSE (CASE WHEN LEN(dbo.FN_ParseString(-4, ':', SPLIT.VALUE)) > 205 THEN '511' " +
-	                "     ELSE (CASE ISNULL(IUL.Image_Log_Id, 0) WHEN 0 THEN '291' ELSE (CASE '" + buId + "' WHEN '-5' THEN '291' ELSE '503' END) END) END) END STATUS, " +
-	                "CASE WHEN '" + splitRequired + "' ='1' AND (dbo.FN_ParseString(-3, ':', SPLIT.VALUE) LIKE '.tif%' OR dbo.FN_ParseString(-3, ':', SPLIT.VALUE) LIKE '.pdf%') " +
-	                "THEN '" + splitPageCount + "' ELSE NULL END Page_Split_Size " +
-	                "FROM #TEMP_FILE_LIST AS SPLIT " +
-	                "LEFT JOIN ECRM_CA_IMAGE_UPLOAD_LOG IUL WITH (NOLOCK) ON (IUL.BU_ID = '" + buId + "' " +
-	                "AND dbo.FN_ParseString(-1, '_', IUL.File_Name) + '_' + dbo.FN_ParseString(-2, '_', IUL.File_Name) + '_' + IUL.Original_File_Name = dbo.FN_ParseString(-2, ':', SPLIT.VALUE) " +
-	                "AND (Status = 505 OR Status = 510))";
+		try {
+			String insertImageUploadLog = "CREATE TABLE #TEMP_FILE_LIST(VALUE NVARCHAR(1000)) "
+					+ "INSERT INTO #TEMP_FILE_LIST(VALUE) SELECT * FROM FN_BPO_SPLIT(N'"
+					+ uploadedFiles.replace("'", "''") + "','|') "
+					+ "INSERT INTO ECRM_CA_IMAGE_UPLOAD_LOG(Batch_No, BU_ID, Company_Name, BU_Name, File_Name, Original_File_Name, Size, "
+					+ "Upload_By, Upload_By_ID, Upload_Stamp, Source, C_IP_Address, Operation_Type, Status, Page_Split_Size) "
+					+ "SELECT '" + batchId + "' AS Batch_No, '" + buId + "' AS BU_ID, '" + companyName
+					+ "' AS Company_Name, '" + buName + "' AS BU_Name, "
+					+ "dbo.FN_ParseString(-1, ':', SPLIT.VALUE) File_Name, "
+					+ "dbo.FN_ParseString(-4, ':', SPLIT.VALUE) Original_File_Name, "
+					+ "dbo.FN_ParseString(-5, ':', SPLIT.VALUE) Size, '" + userName + "' AS Upload_By, '" + userId
+					+ "' AS Upload_By_ID, " + "GETDATE() Upload_Stamp, 'WS' SOURCE, '" + ipAddress + "' C_IP_ADDRESS, "
+					+ "CASE ISNULL(IUL.Image_Log_Id, 0) WHEN 0 THEN '512' ELSE '513' END OPERATION_TYPE, "
+					+ "CASE WHEN CAST(dbo.FN_ParseString(-5, ':', SPLIT.VALUE) AS NUMERIC)=0 "
+					+ "     OR CAST(dbo.FN_ParseString(-5, ':', SPLIT.VALUE) AS NUMERIC) > '" + maxFileSize
+					+ "' THEN '509' "
+					+ "     ELSE (CASE WHEN LEN(dbo.FN_ParseString(-4, ':', SPLIT.VALUE)) > 205 THEN '511' "
+					+ "     ELSE (CASE ISNULL(IUL.Image_Log_Id, 0) WHEN 0 THEN '291' ELSE (CASE '" + buId
+					+ "' WHEN '-5' THEN '291' ELSE '503' END) END) END) END STATUS, " + "CASE WHEN '" + splitRequired
+					+ "' ='1' AND (dbo.FN_ParseString(-3, ':', SPLIT.VALUE) LIKE '.tif%' OR dbo.FN_ParseString(-3, ':', SPLIT.VALUE) LIKE '.pdf%') "
+					+ "THEN '" + splitPageCount + "' ELSE NULL END Page_Split_Size " + "FROM #TEMP_FILE_LIST AS SPLIT "
+					+ "LEFT JOIN ECRM_CA_IMAGE_UPLOAD_LOG IUL WITH (NOLOCK) ON (IUL.BU_ID = '" + buId + "' "
+					+ "AND dbo.FN_ParseString(-1, '_', IUL.File_Name) + '_' + dbo.FN_ParseString(-2, '_', IUL.File_Name) + '_' + IUL.Original_File_Name = dbo.FN_ParseString(-2, ':', SPLIT.VALUE) "
+					+ "AND (Status = 505 OR Status = 510))";
 
-	        // Run the query
-	        jdbcTemplate.execute(insertImageUploadLog);
+			// Run the query
+			jdbcTemplate.execute(insertImageUploadLog);
 
-	    } catch (Exception ex) {
-	        ex.getMessage();
-	    }
+		} catch (Exception ex) {
+			ex.getMessage();
+		}
 
-	    return bulkUploadResponseList;
+		return bulkUploadResponseList;
 	}
-
 
 }

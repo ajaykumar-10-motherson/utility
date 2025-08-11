@@ -67,7 +67,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 
 		Message[] messages = mailDTO.getEmailFolder().search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
 		// for prod testing messages.length -> limit
-		int limit = 2;
+		int limit =  messages.length; //2;
 
 		for (int mailIteration = 0; mailIteration < limit; mailIteration++) {
 
@@ -83,7 +83,7 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 
 				emailReceivedFrom = message.getFrom()[0].toString();
 				emailLogDTO = new EmailLogDTO();
-				emailLogDTO.setBuId("1");
+				emailLogDTO.setBuId(mailDTO.getBuId());
 				emailLogDTO.setMailFrom(emailReceivedFrom);
 				emailLogDTO.setSubject(message.getSubject());
 				emailLogDTO.setEntBy("1");
