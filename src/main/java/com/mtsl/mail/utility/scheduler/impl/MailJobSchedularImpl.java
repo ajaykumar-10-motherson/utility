@@ -36,7 +36,7 @@ public class MailJobSchedularImpl implements MailJobSchedular {
 
 	@Override
 	public void sendMail() {
-
-	}
+   //sendMail
+ }
 
 }

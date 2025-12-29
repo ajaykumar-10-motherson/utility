@@ -147,18 +147,18 @@ public class AttachementExtractorImpl implements AttachementExtractor {
 						boolean isSuccess = fileStorageService.downLoadAttachment(mailDTO);
 
 						if (isSuccess) {
-							result=true;
-							SendMailDTO sendMailDTO = new SendMailDTO();
-							sendMailDTO.setCommonEmailId("ajay.kumar10@Motherson.com");
-							sendMailDTO.setMailTo("ajay.kumar10@Motherson.com");
-							sendMailDTO.setCompanyBu("1");
-							sendMailDTO.setEmaliLogId(generatedEmailId);
-
-							/*
-							 * Set the following before service call... String commonEmailId, String
-							 * companyBu, long emaliLogId, String mailTo
-							 */
-							mailSenderService.doSendMailForEmailLog(sendMailDTO);
+//							result=true;
+//							SendMailDTO sendMailDTO = new SendMailDTO();
+//							sendMailDTO.setCommonEmailId("ajay.kumar10@Motherson.com");
+//							sendMailDTO.setMailTo("ajay.kumar10@Motherson.com");
+//							sendMailDTO.setCompanyBu("1");
+//							sendMailDTO.setEmaliLogId(generatedEmailId);
+//
+//							/*
+//							 * Set the following before service call... String commonEmailId, String
+//							 * companyBu, long emaliLogId, String mailTo
+//							 */
+//							mailSenderService.doSendMailForEmailLog(sendMailDTO);
 						}
 					}
 

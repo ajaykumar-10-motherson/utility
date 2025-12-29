@@ -16,9 +16,13 @@ import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
+import javax.mail.Part;
+import javax.mail.internet.MimeUtility;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -45,13 +49,12 @@ public class FileStorageServiceImpl implements FileStorageService{
 	
 	private final AuditService auditService;
 	private final MarkMailAsUnread markMailAsUnread;  
+	private static final Logger logger = LoggerFactory.getLogger(FileStorageServiceImpl.class);
 
 	@Override
 	public boolean downLoadAttachment(MailDTO fileAttachementDTO) throws IOException, MessagingException {
-
 		Multipart multipart = null;
 		String fileName = null;
-		String strFileNameExtension = null;
 		InputStream is = null;
 		boolean isSuccess = true;
 		Object objRef = fileAttachementDTO.getObjRef();
@@ -70,59 +73,57 @@ public class FileStorageServiceImpl implements FileStorageService{
 			invalidCharArray = invalidCharacter.split(";");
 			validExtensionArray = validExtension.split(";");
 			List<String> validFileExt = Arrays.asList(validExtensionArray);
-			// loop started to download all attachment
 			if (multipart != null) {
-				for (int i1 = 1; i1 < multipart.getCount(); i1++) {
-					dto = new FileDetailsDTO();
-					BodyPart bodyPart = multipart.getBodyPart(i1);
-					fileName = bodyPart.getFileName();
-					dto.setOriginalFileName(bodyPart.getFileName());
-					if (fileName.isBlank()) {
+				for(int i = 0; i < multipart.getCount(); i++) {
+					BodyPart bodyPart = multipart.getBodyPart(i);
+					String disposition = bodyPart.getDisposition();
+					if (disposition == null || (!disposition.equalsIgnoreCase(Part.ATTACHMENT)
+							&& !disposition.equalsIgnoreCase(Part.INLINE))) {
 						continue;
 					}
-
-					for (int j = 0; j < invalidCharArray.length; j++) {
-						if (fileName.contains(invalidCharArray[j])) {
-							fileName = fileName.replace(invalidCharArray[j], "");
-						}
+					fileName = bodyPart.getFileName();
+					if (fileName == null || fileName.trim().isEmpty()) {
+						continue;
 					}
+					fileName = MimeUtility.decodeText(fileName);
+				    dto = new FileDetailsDTO();
+				    dto.setOriginalFileName(fileName);
 
-					dto.setFileName(fileName);
+				    for (String invalidChar : invalidCharArray) {
+				        fileName = fileName.replace(invalidChar, "");
+				    }
 
-					if (!fileName.isBlank()) {
+				    dto.setFileName(fileName);
+				    String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+				    dto.setFileType(extension);
+				    
+				    if (validFileExt.contains(extension)) {
+				        totalvalidFile++;
+				    }
+				    try (InputStream is1 = bodyPart.getInputStream();
+				            FileOutputStream fos = new FileOutputStream(
+				                new File(fileAttachementDTO.getBpoEmailTempLocationAtHTTPServer()
+				                + FILE_SEPERATOR + fileName))) {
 
-						strFileNameExtension = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
-								.trim();
+				           byte[] buffer = new byte[4096];
+				           int bytesRead;
+				           while ((bytesRead = is1.read(buffer)) != -1) {
+				               fos.write(buffer, 0, bytesRead);
+				           }
+				       }
 
-						dto.setFileType(strFileNameExtension);
-
-						if (validFileExt.contains(strFileNameExtension.toLowerCase())) {
-							totalvalidFile++;
-						}
-
-						is = bodyPart.getInputStream();
-						f = new File(fileAttachementDTO.getBpoEmailTempLocationAtHTTPServer()+ FILE_SEPERATOR + fileName);
-						if (f.exists()) {
-							f.delete();
-						}
-						try (FileOutputStream fos = new FileOutputStream(f)) {
-							byte[] buf = new byte[4096];
-							int bytesRead;
-							while ((bytesRead = is.read(buf)) != -1) {
-								fos.write(buf, 0, bytesRead);
-							}
-						}
-						uploadFileData.add(fileName);
-						uploadedFileList.add(dto);
-						totalFile++;
-					}
+				       uploadFileData.add(fileName);
+				       uploadedFileList.add(dto);
+				       totalFile++;
 				}
 			}
 
 			isSuccess = uploadFile(fileAttachementDTO,uploadFileData, totalFile, totalvalidFile, uploadedFileList);
+			if(isSuccess) {
 			markMailAsUnread.markEmailAsRead(fileAttachementDTO.getEmailFolder(), fileAttachementDTO.getMessage());
-			
+			}
 		} catch (Exception ex) {
+			logger.info("Exception :"+ex.getMessage());
 			markMailAsUnread.markMailAsUnread(fileAttachementDTO.getEmailFolder(), fileAttachementDTO.getMessage());
 			isSuccess = false;
 		} finally {
@@ -273,6 +274,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 			}
 
 		} catch (Exception exception) {
+			logger.info("Exception ::"+exception.getMessage());
 			isSuccess = false;
 			markMailAsUnread.markMailAsUnread(emailFolder, message);
 
@@ -289,6 +291,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 		try {
 			FileUtils.copyFile(tempFileWithLocation, new File(phyficalPathForNewFile + FILE_SEPERATOR + renamedFile));
 		} catch (IOException ioe) {
+			logger.info("Exception at moveFileToFileServer"+ioe.getMessage());
 			markMailAsUnread.markMailAsUnread(emailFolder, message);
 		}
 	}
@@ -301,6 +304,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 					new File(bpoCentralizedRepositoryArchive + FILE_SEPERATOR + fileNameWithoutSpecialChar));
 
 		} catch (IOException ioe) {
+			logger.info("Exception at moveFileToCentralizedArchiveFolder"+ioe.getMessage());
 			emailFolder.setFlags(new Message[] { message }, new Flags(Flags.Flag.SEEN), false);
 
 		}
@@ -312,6 +316,7 @@ public class FileStorageServiceImpl implements FileStorageService{
 			// FOR OCR
 			FileUtils.copyFile(tempFileWithLocation, new File(ocrUnStructuredSourcePath + renamedFile));
 		} catch (IOException ioe) {
+			logger.info("Exception ::"+ioe.getMessage());
 			markMailAsUnread.markMailAsUnread(emailFolder, message);
 		}
 	}
