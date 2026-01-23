@@ -74,7 +74,7 @@ public class MailReaderServiceImpl implements MailReaderService {
 					mailConfiguration.getClientId(), mailConfiguration.getClientSecret());
 
 			session = Session.getInstance(properties);
-			session.setDebug(false);
+			session.setDebug(true);
 			emailStore = session.getStore("imap");
 
 			emailStore.connect(mailConfiguration.getHost(), mailConfiguration.getEmail(), token);

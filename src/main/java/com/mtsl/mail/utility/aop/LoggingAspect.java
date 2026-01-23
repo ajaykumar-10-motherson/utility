@@ -14,59 +14,42 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * @author ajay.kumar10
- * Centralized logging using AOP.
+ * @author ajay.kumar10 Centralized logging using AOP.
  */
 @Aspect
 @Component
 public class LoggingAspect {
+
 	private static final Logger logger = LoggerFactory.getLogger(LoggingAspect.class);
 
-	/**
-	 * Logs execution details for methods in DAO, Service, and Utility layers.
-	 */
 	@Around("execution(* com.mtsl.mail.utility..*(..))")
 	public Object logMethodExecution(ProceedingJoinPoint joinPoint) throws Throwable {
+
 		long startTime = System.currentTimeMillis();
+		MethodSignature signature = (MethodSignature) joinPoint.getSignature();
 
-		// Extract method details
-		MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-		String className = methodSignature.getDeclaringType().getSimpleName();
-		String methodName = methodSignature.getName();
+		String className = signature.getDeclaringType().getSimpleName();
+		String methodName = signature.getName();
 		String fullMethodName = className + "." + methodName;
-		Object[] args = joinPoint.getArgs();
 
-		logger.info("\n============================== {}() Start ======================================================================================================", fullMethodName);
-		if (logger.isInfoEnabled()) {
-			logger.info("Entering method -> {}(); :: Arguments: {}", fullMethodName, Arrays.toString(args));
-		}
-
-		Object result;
 		try {
-			result = joinPoint.proceed();
-			long elapsedTime = System.currentTimeMillis() - startTime;
-
-			// Log successful execution with return value
-			logger.info("Method executed -> {}(); in {} ms", fullMethodName, elapsedTime);
-			logger.info("Returned response.");
-		} catch (Exception ex) {
-			logger.info("\n\n============================== {}(); End ========================================================================================================", "Exception Block Start.");
-			StackTraceElement[] stackTrace = ex.getStackTrace();
-			if (stackTrace.length > 0) {
-				StackTraceElement element = stackTrace[0];
-				logger.error("Exception in method -> {}(); at {}:{} - {}", fullMethodName, element.getFileName(),
-						element.getLineNumber(), ex.getMessage());
-			} else {
-				logger.error("Exception in method -> {}(); - {}", fullMethodName, ex.getMessage());
+			if (logger.isDebugEnabled()) {
+				logger.debug("Entering method: {} with args: {}", fullMethodName, Arrays.toString(joinPoint.getArgs()));
 			}
-			logger.error("\nFull Stack Trace:", ex);
-			logger.info("\n\n============================== {}(); End ========================================================================================================", "Exception Block End.");
-			throw ex;
-		}
 
-		long elapsedTime = System.currentTimeMillis() - startTime;
-		logger.info("Execution Time: {} ms", elapsedTime);
-		logger.info("\n============================== {}() End ========================================================================================================", fullMethodName);
-		return result;
+			return joinPoint.proceed();
+
+		} catch (Throwable ex) {
+
+			logger.error("Exception in {}: {}", fullMethodName, ex.getMessage(), ex);
+			throw ex;
+
+		} finally {
+
+			long executionTime = System.currentTimeMillis() - startTime;
+			if (executionTime > 500) {
+			    logger.warn("Slow method detected: {} took {} ms", fullMethodName, executionTime);
+			}
+		}
 	}
 }
